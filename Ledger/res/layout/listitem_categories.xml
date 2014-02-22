@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/expandable_list_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+   	android:paddingLeft="@dimen/expandable_list_group_indentation"
+    android:background="?android:attr/selectableItemBackground"
+    android:baselineAligned="true"
+    android:nextFocusRight="@+id/btn_edit"
+    android:orientation="horizontal" > <!--   android:focusable="true" -->
+
+    <TextView
+        android:id="@+id/txt_caption"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="9dp"
+        android:layout_marginLeft="@dimen/expandable_list_indicator_size"
+        android:layout_marginTop="9dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <ViewStub
+        android:id="@id/edit_caption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inflatedId="@id/edit_caption"
+        android:layout="@layout/edittext" />
+
+    <ImageView
+        android:id="@id/btn_edit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
+        android:contentDescription="@string/edit"
+        android:nextFocusLeft="@id/expandable_list_item"
+        android:onClick="onEditClick"
+        android:padding="8dp"
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:src="@drawable/ic_action_edit" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="11dp"
+        android:layout_marginLeft="0px"
+        android:layout_marginRight="0px"
+        android:layout_marginTop="11dp"
+        android:background="?android:attr/dividerVertical" />
+
+    <ImageView
+        android:id="@+id/btn_delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
+        android:contentDescription="@string/delete"
+        android:onClick="onDeleteClick"
+        android:padding="8dp"
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:src="@drawable/ic_action_delete" />
+
+</LinearLayout>

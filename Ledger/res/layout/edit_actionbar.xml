@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--  Layout for the custom action mode to be displayed when inline-editing a list item. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="?android:attr/actionModeStyle"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:showDividers="middle"
+    android:orientation="horizontal" >
+
+    <TextView
+        android:id="@+id/action_cancel"
+		style="@style/CustomCABButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/cancel"
+        android:drawableLeft="@drawable/ic_navigation_cancel" 
+        android:onClick="onCustomActionModeClick"/>
+    
+    <TextView
+        android:id="@+id/action_done"
+		style="@style/CustomCABButton"        
+		android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:drawableLeft="@drawable/ic_navigation_accept"
+        android:text="@string/done"
+        android:onClick="onCustomActionModeClick" />
+
+</LinearLayout>

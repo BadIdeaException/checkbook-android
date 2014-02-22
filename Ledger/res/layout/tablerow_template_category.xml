@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableRow xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+	android:background="?android:attr/selectableItemBackground" 
+   	android:layout_height="0dp" >
+    <!-- Height of 0dp allows for this item to "disappear into" its parent row -->
+    <!--
+	Width of 0dp allows for the item's width to be calculated by the parent level row.
+	Otherwise, layout widths may appear to "jump" when expanding/collapsing categories. 
+    -->
+
+    <TextView
+        android:id="@+id/txt_caption"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingLeft="12dp"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/txt_revenue"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="right"
+        android:paddingRight="5dp"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/txt_expense"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="right"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@color/red" />
+</TableRow>

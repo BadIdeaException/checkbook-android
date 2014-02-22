@@ -1,0 +1,11 @@
+<resources>
+
+    <dimen name="expandable_list_indicator_size">12dp</dimen>
+    <dimen name="expandable_list_group_indentation">0dp</dimen>
+    <dimen name="expandable_list_child_indentation">36dp</dimen>
+    
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+</resources>
