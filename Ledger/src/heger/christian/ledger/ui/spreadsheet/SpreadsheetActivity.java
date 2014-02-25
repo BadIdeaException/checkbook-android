@@ -327,7 +327,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 		
 		getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
 		navigationAdapter = new NavigationAdapter(this,android.R.layout.simple_spinner_dropdown_item);
-
+		
 		pager = (ViewPager) findViewById(R.id.viewpager);
 		pagerAdapter = new MonthPagerAdapter(getSupportFragmentManager()); 
 		pager.setAdapter(pagerAdapter);		
@@ -367,23 +367,6 @@ public class SpreadsheetActivity extends FragmentActivity {
 	public boolean onAddEntryClick(MenuItem menu) {
 		Intent intent = new Intent(this, EntryActivity.class);
 		startActivity(intent);
-		return true;
-	}
-	
-	public boolean onGoToMonthClick(MenuItem menu) {
-		SelectMonthDialog fragment = SelectMonthDialog.newInstance(MonthsElapsedCalculator.getMonth(pagerAdapter.getEarliest()), 
-				MonthsElapsedCalculator.getYear(pagerAdapter.getEarliest()),
-				MonthsElapsedCalculator.getMonth(pagerAdapter.getMonthId(pager.getCurrentItem())),
-				MonthsElapsedCalculator.getYear(pagerAdapter.getMonthId(pager.getCurrentItem())));	
-		fragment.setDialogListener(new DialogListener() {
-			@Override
-			public void onDialogPositiveClick(DialogFragment dialog, int month, int year) {
-				pager.setCurrentItem(pagerAdapter.getIndex(MonthsElapsedCalculator.getMonthsElapsed(month, year)), true);
-			}
-			@Override
-			public void onDialogNegativeClick(DialogFragment dialog, int month, int year) {}			
-		});
-		fragment.show(getSupportFragmentManager(), fragment.getClass().getCanonicalName());
 		return true;
 	}
 	

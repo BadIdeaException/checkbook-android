@@ -16,6 +16,7 @@
         <activity
             android:name="heger.christian.ledger.ui.spreadsheet.SpreadsheetActivity"
             android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBarTitle"
             android:launchMode="singleTop" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

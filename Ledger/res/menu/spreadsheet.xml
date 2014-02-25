@@ -10,17 +10,7 @@
         android:visible="true"
         android:enabled="true" android:onClick="onAddEntryClick">        
     </item>
-    <item 
-        android:id="@+id/menu_goto_month" 
-        android:icon="@android:drawable/ic_menu_month" 
-        android:showAsAction="ifRoom|withText" 
-        android:titleCondensed="@string/menu_goto_month_title_condensed" 
-        android:title="@string/menu_goto_month_title" 
-        android:checkable="false" 
-        android:checked="false" 
-        android:visible="true"
-        android:enabled="true" android:onClick="onGoToMonthClick">        
-     </item>
+  
 	<item 
 	    android:id="@+id/menu_manage_categories"
 	    android:showAsAction="withText"
