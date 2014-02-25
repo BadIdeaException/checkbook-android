@@ -1,0 +1,277 @@
+package heger.christian.ledger.adapters;
+
+import heger.christian.ledger.providers.CategoryContract;
+import heger.christian.ledger.providers.SupercategoryContract;
+import android.app.LoaderManager;
+import android.app.LoaderManager.LoaderCallbacks;
+import android.content.ContentUris;
+import android.content.Context;
+import android.content.CursorLoader;
+import android.content.Loader;
+import android.database.Cursor;
+import android.os.Bundle;
+import android.provider.BaseColumns;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.SimpleCursorTreeAdapter;
+
+public class CategoriesAdapter extends SimpleCursorTreeAdapter {
+	private Context context;
+	private LoaderManager manager;
+	
+	protected LoaderCallbacks<Cursor> loaderCallbacks = new LoaderCallbacks<Cursor>() {
+		public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+			// Can't pass sc in selectionArgs here because it would be bound as a string by Android,
+			// i.e instead of 
+			// 		SELECT * FROM categories WHERE supercategory=1 
+			// the resulting query would be
+			//  	SELECT * FROM categories WHERE supercategory="1" (notice the quotes)
+			return new CursorLoader(context,
+					CategoryContract.CONTENT_URI, 
+					null, 
+					CategoryContract.COL_NAME_SUPERCATEGORY + "=" + id, 
+					null, 
+					CategoryContract._ID);
+		}
+
+		public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+			Cursor group = getGroup(0);
+			int idIndex = group.getColumnIndex(BaseColumns._ID);
+			while (group.getInt(idIndex) != loader.getId())
+				group.moveToNext();
+			
+			setChildrenCursor(group.getPosition(), data);
+		}
+
+		public void onLoaderReset(Loader<Cursor> loader) {
+			Cursor group = getGroup(0);
+			int idIndex = group.getColumnIndex(BaseColumns._ID);
+			while (group.getInt(idIndex) != loader.getId())
+				group.moveToNext();
+			
+			setChildrenCursor(group.getPosition(), null);
+		}
+	};
+	
+	public CategoriesAdapter(Context context, LoaderManager manager, Cursor cursor, int groupLayout,
+			String[] groupFrom, int[] groupTo, int childLayout,
+			String[] childFrom, int[] childTo) {
+		super(context, cursor, groupLayout, groupFrom, groupTo, childLayout, childFrom,
+				childTo);
+		this.context = context;
+		this.manager = manager;
+	}
+	
+	@Override
+	protected Cursor getChildrenCursor(Cursor groupCursor) {		
+		int sc = groupCursor.getInt(groupCursor.getColumnIndex(SupercategoryContract._ID));
+		// Can't pass sc in selectionArgs here because it would be bound as a string by Android,
+		// i.e instead of 
+		// 		SELECT * FROM categories WHERE supercategory=1 
+		// the resulting query would be
+		//  	SELECT * FROM categories WHERE supercategory="1" (notice the quotes)
+//		Loader<Cursor> loader = manager.getLoader(sc);
+//		if (loader != null && !loader.isReset())
+//			manager.restartLoader(sc, null, loaderCallbacks);
+//		else
+//			manager.initLoader(sc, null, loaderCallbacks);
+//		return null;
+//		AsyncQueryHandler aqh = new AsyncQueryHandler(context.getContentResolver()) {
+//			public void onQueryComplete(int token, Object cookie, Cursor cursor) {
+//				Cursor group = getGroup(0);
+//				int idIndex = group.getColumnIndex(BaseColumns._ID);
+//				while (group.getInt(idIndex) != token)
+//					group.moveToNext();
+//				Log.d("Adapter", "Query complete for token " + token);
+//				setChildrenCursor(group.getPosition(), cursor);
+//			}
+//		};
+//		Log.d("Adapter", "Query started for token " + sc);
+//		Log.v("Adapter","", new Throwable());
+//		
+//		aqh.startQuery(sc, null, LedgerContentProvider.CategoryContract.CONTENT_URI, 
+//				null, 
+//				LedgerContentProvider.CategoryContract.COL_NAME_SUPERCATEGORY + "=" + sc, 
+//				null, 
+//				LedgerContentProvider.CategoryContract._ID);
+//		return null;
+		Cursor cursor = context.getContentResolver().query(CategoryContract.CONTENT_URI, 
+				null, 
+				CategoryContract.COL_NAME_SUPERCATEGORY + "=" + sc, 
+				null, 
+				CategoryContract._ID);
+		
+		return cursor;			
+	}
+	
+	@Override
+	public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {				
+		View view = super.getChildView(groupPosition, childPosition, isLastChild, convertView, parent);		
+		// Set content uri associated with this row to be the tag
+		Cursor cursor = getChild(groupPosition, childPosition);		
+		view.setTag(ContentUris.appendId(CategoryContract.CONTENT_URI.buildUpon(), 
+				cursor.getInt(cursor.getColumnIndex(CategoryContract._ID))).build());
+		return view;
+	}
+	
+	@Override
+	public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
+		View view = super.getGroupView(groupPosition, isExpanded, convertView, parent);
+		Cursor cursor = getGroup(groupPosition);
+		view.setTag(ContentUris.appendId(SupercategoryContract.CONTENT_URI.buildUpon(), 
+				cursor.getInt(cursor.getColumnIndex(SupercategoryContract._ID))).build());
+		return view;
+	}
+	
+}
+//public class CategoriesAdapter {
+//	private Cursor cursor;
+//	private Context context;
+//	private int groupLayout, childLayout;
+//	private String[] groupFrom, childFrom;
+//	private int[] groupTo, childTo;
+//	
+//	public CategoriesAdapter(Context context, Cursor cursor,
+//			int groupLayout, String[] groupFrom, int[] groupTo,
+//			int childLayout, String[] childFrom, int[] childTo) {
+//
+//		this.cursor = cursor;
+//		this.context = context;
+//		this.groupLayout = groupLayout;
+//		this.groupFrom = groupFrom;
+//		this.groupTo = groupTo;
+//		this.childLayout = childLayout;
+//		this.childFrom = childFrom;
+//		this.childTo = childTo;
+//	}
+//	
+//	private int getStyledResource(int attrId) {
+//		TypedArray arr = context.getTheme().obtainStyledAttributes(new int[] { attrId });
+//		int id = arr.getResourceId(0, 0);
+//		arr.recycle();
+//		return id;		
+//	}
+//	
+//	// Convenience method that works like getCursor(), but throws an exception if the cursor is null.
+//	private Cursor checkCursor() {
+//		if (cursor == null)
+//			throw new IllegalStateException("Performed query to CategoriesAdapter with no cursor set.");
+//		return cursor;
+//	}
+//	
+//	public Cursor getCursor() {
+//		return cursor;
+//	}
+//	
+//	/**
+//	 * Get a cursor representing the children for the current row in the passed group cursor.
+//	 * @param groupCursor - The cursor containing the groups, set to the row whose children are to be obtained.
+//	 * @return A cursor containing the children for the selected group.
+//	 */
+//	protected Cursor getChildrenCursor(Cursor groupCursor) {
+//		int sc = groupCursor.getInt(groupCursor.getColumnIndex(LedgerContentProvider.SupercategoryContract._ID));
+//		// Can't pass sc in selectionArgs here because it would be bound as a string by Android,
+//		// i.e instead of 
+//		// 		SELECT * FROM categories WHERE supercategory=1 
+//		// the resulting query would be
+//		//  	SELECT * FROM categories WHERE supercategory="1" (notice the quotes)
+//		Cursor cursor = context.getContentResolver().query(LedgerContentProvider.CategoryContract.CONTENT_URI, 
+//				null, 
+//				LedgerContentProvider.CategoryContract.COL_NAME_SUPERCATEGORY + "=" + sc, 
+//				null, 
+//				LedgerContentProvider.CategoryContract._ID);
+//
+//		return cursor;			
+//	}
+//	
+//	protected View getBaseView(int layout, String[] from, int[] to, Cursor cursor, View convertView, ViewGroup parent) {
+//		if (convertView == null)
+//			convertView = ((LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(layout, parent); 							
+//		for (int i = 0; i < Math.min(from.length,to.length); i++) {
+//			TextView textview = (TextView) convertView.findViewById(to[i]);
+//			String s = cursor.getString(cursor.getColumnIndex(from[i]));
+//			textview.setText(s);
+//		}
+//		return convertView;
+//	}
+//	
+//	/**
+//	 * Replaces the group cursor with the passed cursor and returns the old cursor. 
+//	 * The old cursor is not closed.
+//	 * @param cursor - The new group cursor to use.
+//	 * @return The old cursor, or <code>null</code> if old and new cursor are identical.
+//	 */
+//	public Cursor swapCursor(Cursor cursor) {
+//		Cursor oldCursor = getCursor();
+//		if (oldCursor != cursor) {
+//			this.cursor = cursor;
+//			return oldCursor;
+//		}
+//		return null;
+//	}
+//	
+//	/**
+//	 * Within the group indicated by <code>groupPosition</code>, get the view representing the child indicated by <code>childPosition</code>.
+//	 * If not <code>null</code>, the view passed in <code>convertView</code> will be used for this, otherwise, a new view is created. 
+//	 * @param groupPosition - The index of the group within which a child view is to be obtained
+//	 * @param childPosition - The index of the child for which the view is to be obtained
+//	 * @param isLastChild - Currently ignored
+//	 * @param convertView - A view to be used for the operation. The view passed in this parameter will be converted into one representing
+//	 * the data of the child. This parameter can be <code>null</code>, in which case a new view is created.
+//	 * @param parent - The <code>ViewGroup</code> into which the result view will be inserted.
+//	 * @return - A view showing the data of the indicated child.
+//	 */
+//	public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {		
+//		Cursor groupCursor = checkCursor();
+//		groupCursor.moveToPosition(groupPosition);
+//		Cursor cursor = getChildrenCursor(groupCursor);
+//		cursor.moveToPosition(childPosition);
+//		View view = getBaseView(childLayout, childFrom, childTo, cursor, convertView, parent);
+//		TypedArray styledAttr = context.getTheme().obtainStyledAttributes(new int[] { android.R.attr.expandableListPreferredChildPaddingLeft });		
+//		int paddingLeft = styledAttr.getDimensionPixelOffset(0,0);
+//		styledAttr.recycle();
+//		view.setPadding(paddingLeft, view.getPaddingTop(), view.getPaddingRight(), view.getPaddingBottom());
+//		// Set content uri associated with this row to be the tag
+//		view.setTag(ContentUris.appendId(LedgerContentProvider.CategoryContract.CONTENT_URI.buildUpon(), 
+//				cursor.getInt(cursor.getColumnIndex(LedgerContentProvider.CategoryContract._ID))).build());
+//		return view;
+//	}
+//	
+//	public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
+//		Cursor cursor = checkCursor();
+//		if (cursor == null) 
+//			return null;
+//		
+//		cursor.moveToPosition(groupPosition); 
+//		View view = getBaseView(groupLayout, groupFrom, groupTo, cursor, convertView, parent);
+//		view.setBackground(context.getResources().getDrawable(getStyledResource(android.R.attr.selectableItemBackground)));
+//		// Set content uri associated with this row to be the tag
+//		view.setTag(ContentUris.appendId(LedgerContentProvider.SupercategoryContract.CONTENT_URI.buildUpon(), 
+//				cursor.getInt(cursor.getColumnIndex(LedgerContentProvider.SupercategoryContract._ID))).build());
+//		return view;
+//	}
+//	
+//	public int getGroupCount() {
+//		return checkCursor().getCount();
+//	}
+//
+//	public int getChildrenCount(int groupPosition) {
+//		Cursor groupCursor = checkCursor();
+//		groupCursor.moveToPosition(groupPosition);
+//		Cursor childCursor = getChildrenCursor(groupCursor);
+//		return childCursor.getCount();
+//	}
+//
+//	public long getGroupId(int groupPosition) {
+//		Cursor cursor = checkCursor();
+//		cursor.moveToPosition(groupPosition);
+//		return cursor.getInt(cursor.getColumnIndex(BaseColumns._ID));
+//	}
+//
+//	public long getChildId(int groupPosition, int childPosition) {
+//		Cursor groupCursor = checkCursor();
+//		groupCursor.moveToPosition(groupPosition);
+//		Cursor childCursor = getChildrenCursor(groupCursor);
+//		return childCursor.getInt(childCursor.getColumnIndex(BaseColumns._ID));
+//	}
+//}

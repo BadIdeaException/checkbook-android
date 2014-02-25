@@ -1,0 +1,296 @@
+package heger.christian.ledger.ui.categories;
+
+import heger.christian.ledger.R;
+import heger.christian.ledger.adapters.CategoriesAdapter;
+import heger.christian.ledger.providers.CategoryContract;
+import heger.christian.ledger.providers.LedgerContentProvider;
+import heger.christian.ledger.providers.SupercategoryContract;
+import heger.christian.ledger.ui.categories.RowEditor.RowEditorListener;
+import heger.christian.ledger.ui.views.ExpandableListView;
+import heger.christian.ledger.ui.views.ExpandableListView.ChildHeaderFooterFactory;
+import heger.christian.ledger.ui.views.ExpandableListView.OnChildHeaderClickListener;
+import android.app.Activity;
+import android.app.LoaderManager.LoaderCallbacks;
+import android.content.AsyncQueryHandler;
+import android.content.ContentValues;
+import android.content.CursorLoader;
+import android.content.Loader;
+import android.content.res.TypedArray;
+import android.database.Cursor;
+import android.graphics.Rect;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.v4.app.NavUtils;
+import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.widget.CursorTreeAdapter;
+import android.widget.EditText;
+import android.widget.TextView;
+
+public class CategoryActivity extends Activity implements LoaderCallbacks<Cursor>, RowEditorListener {
+	private static final String STATE_EDITING_ROW = "editing_row";
+	private static final String STATE_EDITING_ROW_CONTENT = "editing_row_content";
+	
+	private ExpandableListView scList;
+	private CursorTreeAdapter adapter;	
+	private RowEditor rowEditor = new RowEditor();
+
+	private ChildHeaderFooterFactory childHeaderFactory = new ChildHeaderFooterFactory() {
+		public int getCount() {
+			return 1;
+		}
+		public View[] createViews() {
+			TypedArray styledAttr = getTheme().obtainStyledAttributes(new int[] { android.R.attr.expandableListPreferredChildPaddingLeft });
+			
+			// Create an "add supercategory" row and change it appropriately
+			View view = createAddSupercategoryRow();
+			((TextView) view).setText(R.string.add_category);
+			view.setPadding(styledAttr.getDimensionPixelOffset(0, 0), 0, 0, 0);		
+			
+			styledAttr.recycle();
+			return new View[] { view };
+		}
+	};
+		
+	private View createAddSupercategoryRow() {
+		TextView textview = new TextView(this);
+		TypedArray styledAttr = getTheme().obtainStyledAttributes(new int[] { android.R.attr.selectableItemBackground, android.R.attr.textAppearanceListItem });
+				
+		textview.setText(R.string.add_supercategory);
+		textview.setGravity(Gravity.CENTER_VERTICAL);
+		textview.setClickable(true);
+		textview.setFocusable(true);
+		// Set text appearance to style attribute textAppearanceListItem, or textAppearanceMedium if not found
+		textview.setTextAppearance(this, styledAttr.getResourceId(1, android.R.style.TextAppearance_Medium_Inverse));
+		textview.setOnClickListener(new OnClickListener() {				
+			public void onClick(View v) {
+				ContentValues values = new ContentValues();
+				values.put(SupercategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_supercategory));
+				new AsyncQueryHandler(getContentResolver()) {
+					@Override
+					public void onInsertComplete(int token, Object cookie, Uri uri) {
+						final ViewGroup row = (ViewGroup) scList.findViewWithTag(uri);
+						startEditing(row);
+					}
+				}.startInsert(0, null, SupercategoryContract.CONTENT_URI, values);
+			}
+		});
+		textview.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_input_add, 0, 0, 0);
+		
+		textview.setBackground(styledAttr.getDrawable(0));
+		styledAttr.recycle();
+		return textview;
+
+	}
+	
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		
+		setContentView(R.layout.actvy_category);
+		// Show the Up button in the action bar.
+		setupActionBar();
+		
+		rowEditor.setRowEditorListener(this);
+		
+		scList = (ExpandableListView) findViewById(R.id.list_supercategories);		
+		
+		getLoaderManager().initLoader(0, null, this);
+		adapter = new CategoriesAdapter(this, //getLoaderManager(),
+				null,
+				R.layout.listitem_categories,
+//				new String[] { SupercategoryContract.COL_NAME_CAPTION },
+//				new int[] { R.id.txt_caption },
+				R.layout.listitem_categories //,
+//				new String[] { CategoryContract.COL_NAME_CAPTION },
+//				new int[] { R.id.txt_caption }
+				);
+				
+		scList.addGroupHeaderView(createAddSupercategoryRow());
+		scList.setChildHeaderFactory(childHeaderFactory);
+		scList.setOnChildHeaderClickListener(new OnChildHeaderClickListener() {			
+			public void onChildHeaderClick(ExpandableListView parent, View v, int groupPosition) {
+				Cursor data = adapter.getGroup(groupPosition);
+				int scID = data.getInt(data.getColumnIndex(SupercategoryContract._ID));
+				ContentValues values = new ContentValues();
+				values.put(CategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_category));
+				values.put(CategoryContract.COL_NAME_SUPERCATEGORY, scID);
+				new AsyncQueryHandler(getContentResolver()) {
+					@Override
+					public void onInsertComplete(int token, Object cookie, Uri uri) {
+						ViewGroup row = (ViewGroup) scList.findViewWithTag(uri);
+						startEditing(row);
+					}
+				}.startInsert(scID, null, CategoryContract.CONTENT_URI, values);
+			}
+		});
+		scList.setAdapter(adapter);
+		// Re-created activity while a row was being edited.
+		// Restore editing state
+		if (savedInstanceState != null && savedInstanceState.containsKey(STATE_EDITING_ROW)) {
+			// Due to the asynchronous nature of cursor loading done by this activity and its associated 
+			// views/adapters, we unfortunately cannot simply retrieve the view for the edited row's uri
+			// because that view may not have been created yet.
+			// So we register a GlobalLayoutListener on the listview and wait until a row with the correct
+			// tag has been created.
+			scList.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+				public void onGlobalLayout() {
+					ViewGroup row = (ViewGroup) scList.findViewWithTag(savedInstanceState.getParcelable(STATE_EDITING_ROW));
+					if (row == null) {
+						return; // Wasn't created yet...
+					}
+					
+					scList.getViewTreeObserver().removeOnGlobalLayoutListener(this); // We're not interested in further changes
+					((TextView) row.findViewById(R.id.txt_caption)).setText(savedInstanceState.getString(STATE_EDITING_ROW_CONTENT));
+					startEditing(row);
+				}
+			});			
+		}
+	}
+
+	@Override
+	protected void onDestroy() {
+		if (!isChangingConfigurations() && rowEditor.isEditing()) {
+			// Commit changes to db only if this is not a destruction due to a configuration change
+			stopEditing();
+		}
+		super.onDestroy();
+	}
+	
+	protected void onSaveInstanceState(Bundle state) {
+		super.onSaveInstanceState(state);
+		if (rowEditor.isEditing()) {
+			state.putParcelable(STATE_EDITING_ROW, (Uri) rowEditor.getRow().getTag());
+			state.putString(STATE_EDITING_ROW_CONTENT, ((EditText) rowEditor.getRow().findViewById(R.id.edit_caption)).getText().toString());
+		}
+	}
+	protected void startEditing(ViewGroup row) {
+		if (rowEditor.getRow() != row) 
+			rowEditor.setRow(row);
+		scList.scrollTo(row);
+		rowEditor.startEditing(null);
+	}
+	
+	public void onEditStart(ViewGroup row) {
+		// Reset callback - this edit operation was either caused by the callback, then we want to reset it,
+		// or while the changes to the database were executed asynchronously (and assuming this took a long
+		// time for some reason) the user has manually clicked the edit button on any other row, in which 
+		// case we don't wan't the callback to override
+//		rowInsertionCallback = null;
+	}
+	
+	protected void stopEditing() {
+		rowEditor.stopEditing();		
+	}
+	
+	public void onEditStop(ViewGroup row, Object result) {	
+		String caption = (String) result;
+		// Perform asynchronous data update
+		Uri uri = (Uri) rowEditor.getRow().getTag();
+		ContentValues values = new ContentValues(1);
+		values.put(LedgerContentProvider.URI_MATCHER.match(uri) == LedgerContentProvider.URI_SUPERCATEGORIES_ID ? 
+				SupercategoryContract.COL_NAME_CAPTION :
+				CategoryContract.COL_NAME_CAPTION, caption);		
+		new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
+	}
+	
+	public void onEditClick(View view) {
+		ViewGroup row = (ViewGroup) view.getParent();
+		startEditing(row);	
+	}
+	
+	public void onDeleteClick(View view) {
+		ViewGroup row = (ViewGroup) view.getParent();
+		Uri uri = (Uri) row.getTag();
+		new AsyncQueryHandler(getContentResolver()) {}.startDelete(0, null, uri, null, null);		
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * Intercept touch event to put row out of edit mode when user touches anywhere else on the screen
+	 */
+	@Override
+	public boolean dispatchTouchEvent(MotionEvent event) {
+		// If the currently focused view is not the EditText, or if the motion event 
+		// is not a "touch begin" event, we're not interested
+		if (rowEditor.isEditing() && event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+			// Get the view coordinates for the EditText and the "Done" button
+			Rect editCaptionBounds = new Rect();
+			Rect btnDoneBounds = new Rect();
+			ViewGroup row = rowEditor.getRow();
+			row.findViewById(R.id.edit_caption).getGlobalVisibleRect(editCaptionBounds);
+			row.findViewById(R.id.btn_done).getGlobalVisibleRect(btnDoneBounds);
+			int rawX = Float.valueOf(event.getRawX()).intValue();
+			int rawY = Float.valueOf(event.getRawY()).intValue();
+			// Is the touch event outside those bounds?
+			if (!editCaptionBounds.contains(rawX, rawY) && !btnDoneBounds.contains(rawX, rawY)) { 
+				// Then stop editing
+				stopEditing();
+			}
+		}
+		return super.dispatchTouchEvent(event);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * Intercept key event to put row out of edit mode when user pressed dpad center key anywhere else on the screen
+	 */
+	@Override
+	public boolean dispatchKeyEvent(KeyEvent event) {
+		if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER && rowEditor.isEditing() && getCurrentFocus().getId() != R.id.edit_caption) {
+			stopEditing();			
+		}
+		return super.dispatchKeyEvent(event);
+	}
+	
+	/**
+	 * Set up the {@link android.app.ActionBar}.
+	 */
+	private void setupActionBar() {
+		getActionBar().setDisplayHomeAsUpEnabled(true);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+			case android.R.id.home:
+				// This ID represents the Home or Up button. In the case of this
+				// activity, the Up button is shown. Use NavUtils to allow users
+				// to navigate up one level in the application structure. For
+				// more details, see the Navigation pattern on Android Design:
+				//
+				// http://developer.android.com/design/patterns/navigation.html#up-vs-back
+				//
+				NavUtils.navigateUpFromSameTask(this);
+				return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+	
+	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+		return new CursorLoader(this, SupercategoryContract.CONTENT_URI, null, null, null, SupercategoryContract._ID);
+	}
+
+	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
+		adapter.setGroupCursor(data);		
+	}
+
+	public void onLoaderReset(Loader<Cursor> loader) {
+		adapter.setGroupCursor(null);
+	}
+
+
+}

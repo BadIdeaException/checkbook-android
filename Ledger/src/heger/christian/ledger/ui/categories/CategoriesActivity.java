@@ -1,304 +1,185 @@
 package heger.christian.ledger.ui.categories;
 
 import heger.christian.ledger.R;
-import heger.christian.ledger.adapters.CategoriesAdapter;
-import heger.christian.ledger.control.CategoryEditorProxy;
 import heger.christian.ledger.providers.CategoryContract;
-import heger.christian.ledger.providers.SupercategoryContract;
-import android.app.ActionBar;
-import android.app.ExpandableListActivity;
+import heger.christian.ledger.ui.categories.EditCategoryDialog.EditCategoryDialogListener;
+import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.AsyncQueryHandler;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.ExpandableListView;
-import android.widget.ExpandableListView.OnChildClickListener;
-import android.widget.TextView;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.widget.CursorAdapter;
+import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
 
-public class CategoriesActivity extends ExpandableListActivity implements LoaderCallbacks<Cursor> {
-	private static final String TAG = "CategoryActivity";
+public class CategoriesActivity extends ListActivity implements LoaderCallbacks<Cursor> {
+	private class EditDialogListener implements EditCategoryDialogListener {
+		private final long id;
+		private final String caption;
 
-	private static final int ACTION_BAR_DEFAULT = 
-			ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME| ActionBar.DISPLAY_SHOW_TITLE;
+		private EditDialogListener(long id, String caption) {
+			this.id = id;
+			this.caption = caption;
+		}
 
-	private static final String STATE_EDITING_ID = "editing_id";
-	private static final String STATE_EDITING_VALUE_CAPTION = "editing_value_caption";
-	
-
-	private CategoriesAdapter adapter;
-	private CategoryEditorProxy proxy;
-	
-	private View createAddSupercategoryView() {
-		TextView textview = (TextView) getLayoutInflater().inflate(R.layout.add_category, null);
-		textview.setText(R.string.add_supercategory);
-		int paddingLeft = getResources().getDimensionPixelOffset(R.dimen.expandable_list_group_indentation);
-		textview.setPadding(paddingLeft, 0, 0, 0);
-		textview.setOnClickListener(new OnClickListener() {			
-			@Override
-			public void onClick(View v) {
+		@Override
+		public void onClose(String caption) {
+			if (caption != this.caption) {
+				Uri uri = ContentUris.withAppendedId(CategoryContract.CONTENT_URI, id);
 				ContentValues values = new ContentValues();
-				values.put(SupercategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_supercategory));
-				new AsyncQueryHandler(getContentResolver()) {						
-					@Override
-					public void onInsertComplete(int token, Object cookie, Uri uri) {
-						long id = adapter.getCombinedGroupId(ContentUris.parseId(uri));
-						startEditing(id);
-					}
-				}.startInsert(0, null, SupercategoryContract.CONTENT_URI, values);
+				values.put(CategoryContract.COL_NAME_CAPTION, caption);
+				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
 			}
-		});
-		return textview;
+		}
 	}
+
+	private static final String EDIT_DIALOG_TAG = EditCategoryDialog.class.getCanonicalName();
+
+	private static final String ARG_EDITING_ID = "editing_id";
+	private static final String ARG_EDITING_CAPTION = "editing_caption";
 	
+	private CursorAdapter adapter;
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.categories, menu);
+		return true;
+	}
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		adapter = new CategoriesAdapter(this, null, R.layout.listitem_categories, R.layout.listitem_categories);
+		adapter = new SimpleCursorAdapter(this, 
+				R.layout.listitem_categories, 
+				null, 
+				new String[] { CategoryContract.COL_NAME_CAPTION }, 
+				new int[] { R.id.txt_caption }, 0);
+
 		getLoaderManager().initLoader(0, null, this);
 		
-		ExpandableListView list = getExpandableListView();
-		list.addHeaderView(createAddSupercategoryView());
+		ListView list = getListView();
 		list.setAdapter(adapter);
 		list.setItemsCanFocus(true);
 		
-		list.setIndicatorBounds(5, 5 + Math.round(getResources().getDimension(R.dimen.expandable_list_indicator_size)));
-		list.setOnChildClickListener(new OnChildClickListener() {
-			@Override
-			public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
-				if (childPosition == 0) {
-					final long supercategory = adapter.getGroupId(groupPosition);
-					ContentValues values = new ContentValues();					
-					values.put(CategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_category));
-					values.put(CategoryContract.COL_NAME_SUPERCATEGORY, supercategory);
-					new AsyncQueryHandler(getContentResolver()) {						
-						@Override
-						public void onInsertComplete(int token, Object cookie, Uri uri) {
-							long id = adapter.getCombinedChildId(supercategory, ContentUris.parseId(uri));
-							startEditing(id);
-						}
-					}.startInsert(0, null, CategoryContract.CONTENT_URI, values);
-					return true;
-				}
-				return false;
+		// Re-created activity while a category was being edited.
+		// Reattach dialog listener
+		if (savedInstanceState != null) {
+			EditCategoryDialog dialog = (EditCategoryDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
+			if (dialog != null && savedInstanceState.containsKey(ARG_EDITING_ID)) {
+				dialog.setDialogListener(new EditDialogListener(savedInstanceState.getLong(ARG_EDITING_ID), 
+						savedInstanceState.getString(ARG_EDITING_CAPTION, "")));
 			}
-		});
-		
-		// Re-created activity while a row was being edited.
-		// Restore editing state
-		if (savedInstanceState != null && savedInstanceState.containsKey(STATE_EDITING_ID)) {
-			long id = savedInstanceState.getLong(STATE_EDITING_ID);			
-			proxy = new CategoryEditorProxy(list, adapter, id);
-			proxy.setInitialValue(savedInstanceState.getString(STATE_EDITING_VALUE_CAPTION));
-			startEditing(id);
 		}
 	}
 	
 	@Override
 	public void onSaveInstanceState(Bundle state) {
 		super.onSaveInstanceState(state);
-		if (proxy != null && proxy.isAlive()) {
-			state.putLong(STATE_EDITING_ID, adapter.getEditingCombinedId());
-			state.putString(STATE_EDITING_VALUE_CAPTION, proxy.getCaption());
+		// If currently editing, store edited id and old caption
+		EditCategoryDialog dialog = (EditCategoryDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
+		if (dialog != null) {
+			EditDialogListener listener = (EditDialogListener) dialog.getDialogListener();
+			state.putLong(ARG_EDITING_ID, listener.id);
+			state.putString(ARG_EDITING_CAPTION, listener.caption);
 		}
 	}
 	
-	@Override
-	public void onBackPressed() {
-		if (adapter.getEditingCombinedId() == CategoriesAdapter.NOT_EDITING)
-			super.onBackPressed();
-		else 
-			stopEditing();
-	}
-	
-	public void onCustomActionModeClick(View view) {
-		switch (view.getId()) {
-			case R.id.action_done:				
-				// Store values in the database
-				Uri uri;
-				ContentValues values = new ContentValues();
-				long id = adapter.getEditingCombinedId();
-				if (adapter.isChildId(id)) {
-					uri = ContentUris.withAppendedId(CategoryContract.CONTENT_URI, adapter.extractChildId(id));
-					values.put(CategoryContract.COL_NAME_CAPTION, proxy.getCaption());
-//					values.put(CategoryContract.COL_NAME_SUPERCATEGORY, adapter.extractGroupId(id));
-				} else {
-					uri = ContentUris.withAppendedId(SupercategoryContract.CONTENT_URI, adapter.extractGroupId(id));
-					values.put(SupercategoryContract.COL_NAME_CAPTION, proxy.getCaption());
-				}		
-				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
-				//$FALL-THROUGH$
-			case R.id.action_cancel:				
-				// Put the row out of editing mode
-				stopEditing();
-		}
-		
-	}
-
 	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-		return new CursorLoader(this, SupercategoryContract.CONTENT_URI, null, null, null, SupercategoryContract._ID);
+		return new CursorLoader(this, CategoryContract.CONTENT_URI, null, null, null, CategoryContract._ID);
 	}
 
 	@Override
 	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
-		adapter.setGroupCursor(data);		
+		adapter.swapCursor(data);
 	}
 
 	@Override
 	public void onLoaderReset(Loader<Cursor> loader) {
-		adapter.setGroupCursor(null);
+		adapter.swapCursor(null);
 	}
-	
-	private void updateViewAt(long packedPosition) {
-		// Only update on valid position data
-		if (packedPosition != ExpandableListView.PACKED_POSITION_VALUE_NULL) {
-			ExpandableListView list = getExpandableListView();
-			// Convert packed position into a flat position
-			int flatPosition = list.getFlatListPosition(packedPosition);
-			// Get view corresponding to flat position
-			View v = list.getChildAt(flatPosition);
-			// Convert packed position into groupPosition/childPosition
-			int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
-			switch (ExpandableListView.getPackedPositionType(packedPosition)) {
-				case ExpandableListView.PACKED_POSITION_TYPE_GROUP:
-					adapter.getGroupView(groupPosition, 
-							list.isGroupExpanded(groupPosition), 
-							v, 
-							list);
-					break;
-				case ExpandableListView.PACKED_POSITION_TYPE_CHILD:
-					int prevChildPosition = ExpandableListView.getPackedPositionChild(packedPosition);
-					adapter.getChildView(groupPosition, 
-							prevChildPosition, 
-							adapter.getChildrenCount(groupPosition) + 1 == prevChildPosition, 
-							v, 
-							list);
-					break;
-			}
+		
+	/**
+	 * Edits the item at the specified position
+	 * @param position - Position in the list to edit. Must be larger than the number of header views
+	 * @throws IllegalArgumentException - If the position corresponds to one of the header views
+	 */
+	public void edit(int position) {
+		if (position < getListView().getHeaderViewsCount()) {
+			throw new IllegalArgumentException("Cannot edit position " + position + " with header views count " + getListView().getHeaderViewsCount());
+		} else {
+			position -= getListView().getHeaderViewsCount();
 		}
+		long id = adapter.getItemId(position);
+		
+		Cursor cursor = (Cursor) adapter.getItem(position);
+		String caption = cursor.getString(cursor.getColumnIndex(CategoryContract.COL_NAME_CAPTION));
+		
+		EditCategoryDialog dialog = EditCategoryDialog.newInstance(caption);
+		dialog.setDialogListener(new EditDialogListener(id, caption));
+		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
 	}
-	
-	public void startEditing(long combinedId) {
-		long prevId = adapter.getEditingCombinedId();
-		adapter.setEditingCombinedId(combinedId);
-		
-		// Update previously edited view, if any		
-		if (prevId != CategoriesAdapter.NOT_EDITING) {
-			long packedPosition = getPackedPositionForId(prevId);
-			updateViewAt(packedPosition);
-		}
-		
-		// Update new editing row	
-		if (combinedId != CategoriesAdapter.NOT_EDITING) {
-			long packedPosition = getPackedPositionForId(combinedId);
-			updateViewAt(packedPosition);
-			
-			// Set action bar to display custom action mode containing "Done" and "Cancel" buttons
-			getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
-					ACTION_BAR_DEFAULT | ActionBar.DISPLAY_SHOW_CUSTOM);
-			getActionBar().setCustomView(R.layout.edit_actionbar);
 
-			// Only create new proxy if none for the requested id exists
-			if (!(proxy != null && proxy.isAlive() && proxy.getId() == combinedId)) {
-				if (proxy != null)
-					proxy.close();
-				proxy = new CategoryEditorProxy(getExpandableListView(), adapter, combinedId);
+	public boolean onAddClick(MenuItem menu) {
+		ContentValues values = new ContentValues();					
+		values.put(CategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_category));
+		new AsyncQueryHandler(getContentResolver()) {						
+			@Override
+			public void onInsertComplete(int token, Object cookie, Uri uri) {
+				final long id = ContentUris.parseId(uri);
+				final ListView list = getListView();
+				
+				// Ugly hack: 
+				// Add temporary layout listener to the list view to make sure the list view and its adapter have
+				// already been updated to the insert before scrolling and editing 
+				list.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+					@Override
+					public void onGlobalLayout() { 
+						list.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+						
+						int position;
+						for (position = 0; position < adapter.getCount(); position++)
+							if (adapter.getItemId(position) == id) break;
+						position += list.getHeaderViewsCount();
+						list.smoothScrollToPosition(position);
+						edit(position);
+					}
+				});
 			}
-		}
-	}
-	
-	public void stopEditing() {
-		try {
-			long prevId = adapter.getEditingCombinedId(); 
-			adapter.setEditingCombinedId(CategoriesAdapter.NOT_EDITING);
-			
-			long packedPosition = getPackedPositionForId(prevId);
-			updateViewAt(packedPosition);
-			
-			getActionBar().setDisplayOptions(ACTION_BAR_DEFAULT);
-		} finally {
-			proxy.close();		
-		}
+		}.startInsert(0, null, CategoryContract.CONTENT_URI, values);
+		return true;
 	}
 	
 	public void onEditClick(View view) {
 		View item = (View) view.getParent();
-		ExpandableListView list = getExpandableListView();
-		// Convert flat list position into packed position and from there into a groupPosition/childPosition
-		int flatPosition = list.getPositionForView(item);
-		long packedPosition = list.getExpandableListPosition(flatPosition);
-		int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
-		long groupId = adapter.getGroupId(ExpandableListView.getPackedPositionGroup(packedPosition));
+		ListView list = getListView();
 		
-		long combinedId;
-		switch (ExpandableListView.getPackedPositionType(packedPosition)) {
-			case ExpandableListView.PACKED_POSITION_TYPE_GROUP:
-				combinedId = adapter.getCombinedGroupId(groupId);
-				break;
-			case ExpandableListView.PACKED_POSITION_TYPE_CHILD:
-				int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
-				long childId = adapter.getChildId(groupPosition, childPosition);
-				combinedId = adapter.getCombinedChildId(groupId, childId);
-				break;
-			default:
-				Log.e(TAG, "Illegal packed position when trying to start editing");
-				return;
-		}
-		
-		startEditing(combinedId);
+		int position = list.getPositionForView(item);
+		edit(position);
 	}
 	
 	public void onDeleteClick(View view) {
 		View item = (View) view.getParent();
-		ExpandableListView list = getExpandableListView();
+		ListView list = getListView();
 		
-		int flatPosition = list.getPositionForView(item);
-		long packedPosition = list.getExpandableListPosition(flatPosition);
-		int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
-		long groupId = adapter.getGroupId(groupPosition);
-		
-		long id;
-		Uri uri;
-		switch (ExpandableListView.getPackedPositionType(packedPosition)) {
-			case ExpandableListView.PACKED_POSITION_TYPE_CHILD:
-				int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
-				long childId = adapter.getChildId(groupPosition, childPosition);
-				id = adapter.getCombinedChildId(groupId, childId);
-				uri = ContentUris.withAppendedId(CategoryContract.CONTENT_URI, childId);
-				break;
-			case ExpandableListView.PACKED_POSITION_TYPE_GROUP:
-				id = adapter.getCombinedGroupId(groupId);
-				uri = ContentUris.withAppendedId(SupercategoryContract.CONTENT_URI, groupId);
-				break;
-			default:
-				Log.e(TAG, "Illegal packed position when trying to delete");
-				return;
-		}
-		
-		// If trying to delete the currently editing row, stop editing first
-		if (adapter.getEditingCombinedId() == id) {
-			stopEditing();
-		}
+		int position = list.getPositionForView(item) - list.getHeaderViewsCount();
+		long id = adapter.getItemId(position);
+		Uri uri = ContentUris.withAppendedId(CategoryContract.CONTENT_URI, id);
 		
 		new AsyncQueryHandler(getContentResolver()) {
 		}.startDelete(0, null, uri, null, null);
 	}
-	
-	public long getPackedPositionForId(long id) {
-		ExpandableListView list = getExpandableListView();
-		for (int position = list.getFirstVisiblePosition(); position <= list.getLastVisiblePosition(); position++) {
-			if (list.getItemIdAtPosition(position) == id) {
-				return list.getExpandableListPosition(position);
-			}
-		}
-		return ExpandableListView.PACKED_POSITION_VALUE_NULL;
-	}	
 }

@@ -36,7 +36,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 
-
+// TODO Refactor to move nested class to own files. Create interface Timeline to handle communication between pager/pager adapter and dropdown adapter.
 
 public class SpreadsheetActivity extends FragmentActivity {
 	public static final String ARG_MONTH_ID = "monthID";
@@ -383,7 +383,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 			@Override
 			public void onDialogNegativeClick(DialogFragment dialog, int month, int year) {}			
 		});
-		fragment.show(getSupportFragmentManager(), "gotomonth");
+		fragment.show(getSupportFragmentManager(), fragment.getClass().getCanonicalName());
 		return true;
 	}
 	
