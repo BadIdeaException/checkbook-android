@@ -19,6 +19,7 @@ public class SpreadsheetAdapter extends SimpleCursorTreeAdapter {
 		/*
 		 * groupPosition for which to load is expected to be passed in id
 		 */
+		@Override
 		public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 			Cursor groupCursor = getGroup(id);
 			long category = groupCursor.getLong(groupIdColumn);
@@ -34,10 +35,12 @@ public class SpreadsheetAdapter extends SimpleCursorTreeAdapter {
 					EntryContract.COL_NAME_DATETIME);
 		}
 
+		@Override
 		public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
 			setChildrenCursor(loader.getId(), data);
 		}
 
+		@Override
 		public void onLoaderReset(Loader<Cursor> loader) {
 			setChildrenCursor(loader.getId(), null);
 		}
@@ -66,7 +69,7 @@ public class SpreadsheetAdapter extends SimpleCursorTreeAdapter {
 		int groupPosition = groupCursor.getPosition();
 		
 		LoaderManager loaderManager = ((FragmentActivity) context).getSupportLoaderManager();
-		Loader loader = loaderManager.getLoader(groupPosition);
+		Loader<?> loader = loaderManager.getLoader(groupPosition);
 		// If a loader is already associated with this position, and that loader has not been reset, do so.
 		// Otherwise initialize a new loader.
 		// Always initiating a new loader will result in an infinite cycle and stack overflow 

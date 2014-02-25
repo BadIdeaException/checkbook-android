@@ -451,6 +451,7 @@ public class ExpandableListView extends ViewGroup  {
 			private int index;
 			private long id;
 			public RemoveOperation(int index, long id) { this.index = index; this.id = id; }
+			@Override
 			public void run() {
 				layout.removeViewAt(index);			
 				created.remove(id);
@@ -463,11 +464,13 @@ public class ExpandableListView extends ViewGroup  {
 			public AddOperation(View view, int index, long id) { 
 				this.view = view; this.index = index;
 			}
+			@Override
 			public void run() {
 				layout.addView(view, index);
 			}
 		}
 	
+		@Override
 		public void onChanged() {	
 			/* 	
 			 * Since no information is provided as to where the data change occurred, 
@@ -713,15 +716,19 @@ public class ExpandableListView extends ViewGroup  {
 	}
 
 	private OnClickListener internalChildClickListener = new OnClickListener() {
+		@Override
 		public void onClick(View v) { onChildClick(v); }
 	};
 	private OnClickListener internalGroupClickListener = new OnClickListener() {		
+		@Override
 		public void onClick(View v) { onGroupClick(v); }
 	};
 	private OnClickListener internalChildHeaderClickListener = new OnClickListener() {
+		@Override
 		public void onClick(View v) { onChildHeaderClick(v); }
 	};
 	private OnClickListener internalChildFooterClickListener = new OnClickListener() {
+		@Override
 		public void onClick(View v) { onChildFooterClick(v); }
 	};
 	
@@ -848,6 +855,7 @@ public class ExpandableListView extends ViewGroup  {
 		learnID(getID(groupPosition, childPosition),groupPosition,childPosition);
 	}
 	
+	@SuppressWarnings("unused")
 	private void addViewAt(int groupPosition, int childPosition, View view) {
 		if (childPosition == -1)
 			addGroupViewAt(groupPosition, view);
@@ -1107,6 +1115,7 @@ public class ExpandableListView extends ViewGroup  {
 		}
 	}
 	
+	@Override
 	public void scrollTo(int groupPosition, int childPosition) {
 		// Calculate index doesn't do any scope checking, so we need to do this here
 		// If the requested child view is not currently showing, go to its group 
@@ -1138,14 +1147,6 @@ public class ExpandableListView extends ViewGroup  {
 	
 	private static class SavedState extends BaseSavedState {
 		private Set<Long> expanded;
-		public static final Parcelable.Creator<SavedState> CREATOR = new Parcelable.Creator<ExpandableListView.SavedState>() {
-			public SavedState createFromParcel(Parcel in) {
-				return new SavedState(in);
-			}
-			public SavedState[] newArray(int size) {
-				return new SavedState[size];
-			}
-		};
 		public SavedState(Parcelable superState) {
 			super(superState);
 		}
@@ -1155,6 +1156,7 @@ public class ExpandableListView extends ViewGroup  {
 			expanded = new HashSet<Long>(expandedIDs.length);
 			Collections.addAll(expanded, expandedIDs);					
 		}		
+		@Override
 		public void writeToParcel(Parcel dest, int flags) {
 			super.writeToParcel(dest, flags);
 			dest.writeArray(expanded.toArray());

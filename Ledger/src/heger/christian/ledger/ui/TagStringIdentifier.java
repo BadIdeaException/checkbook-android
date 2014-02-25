@@ -19,6 +19,7 @@ public class TagStringIdentifier implements Identifier {
 	 * determined by the tag's <code>toString()</code> method.
 	 * If the view has no tag, this method returns <code>null</code>.
 	 */
+	@Override
 	public Object identify(View view) {
 		Object tag = view.getTag();
 		return tag != null ? tag.toString() : null;

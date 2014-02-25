@@ -76,6 +76,7 @@ public class RowEditor {
 		btnDone.setLayoutParams(btnEdit.getLayoutParams());
 		btnDone.setPadding(btnEdit.getPaddingLeft(), btnEdit.getPaddingTop(), btnEdit.getPaddingRight(), btnEdit.getPaddingBottom());
 		btnDone.setOnClickListener(new OnClickListener() {			
+			@Override
 			public void onClick(View v) {
 				stopEditing();				
 			}
@@ -88,6 +89,7 @@ public class RowEditor {
 			
 		// Set listener so that when "done" is selected on the IME, editing is stopped
 		editCaption.setOnEditorActionListener(new OnEditorActionListener() {			
+			@Override
 			public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
 		            if (actionId == EditorInfo.IME_ACTION_DONE) {
 		                stopEditing();
@@ -104,6 +106,7 @@ public class RowEditor {
 		
 		// Make sure that edit text can be reached using the dpad: When navigating to the row, focus the edittext
 		row.setOnFocusChangeListener(new OnFocusChangeListener() {
+			@Override
 			public void onFocusChange(View v, boolean hasFocus) {
 				if (hasFocus)
 					editCaption.requestFocus();
@@ -115,6 +118,7 @@ public class RowEditor {
 		editCaption.requestFocus();	
 		final InputMethodManager mgr = (InputMethodManager) row.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
 		editCaption.postDelayed(new Runnable() { 
+			@Override
 			public void run () { mgr.showSoftInput(editCaption, 0); }},50);		
 	}
 	

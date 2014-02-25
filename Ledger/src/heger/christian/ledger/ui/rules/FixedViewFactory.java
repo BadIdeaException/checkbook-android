@@ -49,6 +49,7 @@ public class FixedViewFactory {
 		textview.setGravity(Gravity.CENTER_VERTICAL);		
 		textview.setText(R.string.add_rule);
 		textview.setOnClickListener(new OnClickListener() {				
+			@Override
 			public void onClick(View v) {
 				new AsyncTask<Object, Object, Long>() {
 					@Override

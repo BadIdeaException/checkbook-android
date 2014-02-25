@@ -166,19 +166,25 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 	private void prepareUI() {
 		// Attach text watcher to caption edit to toggle enabled state of the save button
 		editCaption.addTextChangedListener(new TextWatcher() {			
+			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				updateSaveButton();
 			}
+			@Override
 			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}			
+			@Override
 			public void afterTextChanged(Editable s) {}
 		});
 		
 		// Attach text watcher to value edit to toggle enabled state of the save button
 		editValue.addTextChangedListener(new TextWatcher() {			
+			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				updateSaveButton();
 			}
+			@Override
 			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}			
+			@Override
 			public void afterTextChanged(Editable s) {}
 		});
 		// Make the value edit field accept digits as well as the currency symbol, the monetary decimal separator, 
@@ -351,11 +357,13 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		editCaption.addTextChangedListener(ruleApplicationWatcher);
 		
 		spinCategory.setOnItemSelectedListener(new OnItemSelectedListener() {
+			@Override
 			public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
 				if (!suppressSpinnerListener)
 					userChosenCategory = true;
 				suppressSpinnerListener = false;
 			}
+			@Override
 			public void onNothingSelected(AdapterView<?> parent) {
 			}
 		});		
@@ -460,6 +468,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 	
 	public void onDateClick(View v) {
 		DatePickerDialog dlg = new DatePickerDialog(this, new OnDateSetListener() {					
+			@Override
 			public void onDateSet(DatePicker picker, int year, int month, int day) {
 				calendar.set(year, month, day);
 				btnDate.setText(DateFormat.getDateFormat(EntryActivity.this).format(calendar.getTime()));
@@ -470,6 +479,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 
 	public void onTimeClick(View v) {
 		TimePickerDialog dlg = new TimePickerDialog(this, new OnTimeSetListener() {
+			@Override
 			public void onTimeSet(TimePicker picker, int hour, int minute) {
 				calendar.set(Calendar.HOUR, hour);
 				calendar.set(Calendar.MINUTE, minute);
@@ -480,6 +490,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		dlg.show();	
 	}
 	
+	@Override
 	public void onRuleMatchingComplete(final Map<Integer,Integer> matchResult) {
 		String matches = "[ ";
 		for (Map.Entry<Integer, Integer> m: matchResult.entrySet()) {
@@ -545,6 +556,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			builder.setAdapter(adapter, new OnClickListener() {				
+				@Override
 				public void onClick(DialogInterface dialog, int which) {
 					setSelectedCategory((int) adapter.getItemId(which));
 					userChosenCategory = true;
@@ -560,12 +572,14 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		matcher.matchStrict(editCaption.getText().toString());
 	}
 
+	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		if (id == 0)
 			return new CursorLoader(this, CategoryContract.CONTENT_URI, null, null, null, null);
 		return null;
 	}
 
+	@Override
 	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 		if (loader.getId() == 0) {
 			// If the database contains no categories yet, this whole exercise will not make much sense, because
@@ -576,6 +590,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 				AlertDialog.Builder builder = new AlertDialog.Builder(EntryActivity.this);
 				builder.setMessage(R.string.dlg_no_categories_message);
 				builder.setPositiveButton(R.string.yes, new OnClickListener() {					
+					@Override
 					public void onClick(DialogInterface dialog, int which) {
 						Intent intent = new Intent(Intent.ACTION_VIEW, 
 								null, 
@@ -583,6 +598,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 						startActivity(intent);
 					}
 				}).setNegativeButton(R.string.no, new OnClickListener() {					
+					@Override
 					public void onClick(DialogInterface dialog, int which) {
 						onCancelClick(null);
 					}
@@ -595,6 +611,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		}
 	}
 
+	@Override
 	public void onLoaderReset(Loader<Cursor> loader) {
 		if (loader.getId() == 0)
 			((CursorAdapter) spinCategory.getAdapter()).swapCursor(null);

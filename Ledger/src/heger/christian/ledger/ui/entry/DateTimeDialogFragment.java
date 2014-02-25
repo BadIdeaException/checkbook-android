@@ -48,6 +48,7 @@ public class DateTimeDialogFragment extends DialogFragment implements OnDateChan
 	    builder.setTitle("");
 	    
 	    builder.setPositiveButton(android.R.string.ok, new OnClickListener() {			
+			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				if (listener != null) {
 					listener.onDateTimeSet(datePicker, timePicker, 
@@ -82,12 +83,14 @@ public class DateTimeDialogFragment extends DialogFragment implements OnDateChan
 		getDialog().setTitle(formatter.format(calendar.getTime()));
 	}
 	
+	@Override
 	public void onTimeChanged(TimePicker view, int hourOfDay, int minute) {
 		calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
 		calendar.set(Calendar.MINUTE, minute);
 		updateTitle();
 	}
 
+	@Override
 	public void onDateChanged(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
 		calendar.set(Calendar.YEAR, year);
 		calendar.set(Calendar.MONTH, monthOfYear);

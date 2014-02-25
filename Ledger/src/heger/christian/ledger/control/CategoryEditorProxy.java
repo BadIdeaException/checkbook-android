@@ -53,7 +53,9 @@ public class CategoryEditorProxy {
 		private boolean needsFullSearch() {
 			return position == ListView.INVALID_POSITION && item == null;
 		}
+		@Override
 		public void onScrollStateChanged(AbsListView view, int scrollState) {}		
+		@Override
 		public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
 			if (needsFullSearch()) {
 				fullSearch();

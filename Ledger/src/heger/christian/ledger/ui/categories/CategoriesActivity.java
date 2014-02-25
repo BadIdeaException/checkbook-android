@@ -17,7 +17,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ExpandableListView;
@@ -43,6 +42,7 @@ public class CategoriesActivity extends ExpandableListActivity implements Loader
 		int paddingLeft = getResources().getDimensionPixelOffset(R.dimen.expandable_list_group_indentation);
 		textview.setPadding(paddingLeft, 0, 0, 0);
 		textview.setOnClickListener(new OnClickListener() {			
+			@Override
 			public void onClick(View v) {
 				ContentValues values = new ContentValues();
 				values.put(SupercategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_supercategory));
@@ -71,6 +71,7 @@ public class CategoriesActivity extends ExpandableListActivity implements Loader
 		
 		list.setIndicatorBounds(5, 5 + Math.round(getResources().getDimension(R.dimen.expandable_list_indicator_size)));
 		list.setOnChildClickListener(new OnChildClickListener() {
+			@Override
 			public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
 				if (childPosition == 0) {
 					final long supercategory = adapter.getGroupId(groupPosition);
@@ -141,14 +142,17 @@ public class CategoriesActivity extends ExpandableListActivity implements Loader
 		
 	}
 
+	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		return new CursorLoader(this, SupercategoryContract.CONTENT_URI, null, null, null, SupercategoryContract._ID);
 	}
 
+	@Override
 	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
 		adapter.setGroupCursor(data);		
 	}
 
+	@Override
 	public void onLoaderReset(Loader<Cursor> loader) {
 		adapter.setGroupCursor(null);
 	}

@@ -50,14 +50,17 @@ public abstract  class FilteringAdapter implements SpinnerAdapter,ListAdapter {
 		return adapter;
 	}
 	
+	@Override
 	public void registerDataSetObserver(DataSetObserver observer) {
 		adapter.registerDataSetObserver(observer);
 	}
 
+	@Override
 	public void unregisterDataSetObserver(DataSetObserver observer) {
 		adapter.unregisterDataSetObserver(observer);
 	}
 
+	@Override
 	public int getCount() {
 		int count = 0;
 		for (int i = 0; i < adapter.getCount(); i++)
@@ -66,30 +69,37 @@ public abstract  class FilteringAdapter implements SpinnerAdapter,ListAdapter {
 		return count;
 	}
 
+	@Override
 	public Object getItem(int position) {
 		return adapter.getItem(getInternalPosition(position));
 	}
 
+	@Override
 	public long getItemId(int position) {
 		return adapter.getItemId(getInternalPosition(position));
 	}
 
+	@Override
 	public boolean hasStableIds() {
 		return adapter.hasStableIds();
 	}
 
+	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
 		return adapter.getView(getInternalPosition(position), convertView, parent);
 	}
 
+	@Override
 	public int getItemViewType(int position) {
 		return adapter.getItemViewType(getInternalPosition(position));
 	}
 
+	@Override
 	public int getViewTypeCount() {
 		return adapter.getViewTypeCount();
 	}
 
+	@Override
 	public boolean isEmpty() {
 		int position = 0;
 		while (position < adapter.getCount())
@@ -98,14 +108,17 @@ public abstract  class FilteringAdapter implements SpinnerAdapter,ListAdapter {
 		return false;
 	}
 	
+	@Override
 	public boolean isEnabled(int position) {
 		return ((ListAdapter) adapter).isEnabled(getInternalPosition(position));
 	}
 
+	@Override
 	public boolean areAllItemsEnabled() {
 		return ((ListAdapter) adapter).areAllItemsEnabled();
 	}
 
+	@Override
 	public View getDropDownView(int position, View convertView, ViewGroup parent) {
 		return ((SpinnerAdapter) adapter).getDropDownView(getInternalPosition(position), convertView, parent);
 	}

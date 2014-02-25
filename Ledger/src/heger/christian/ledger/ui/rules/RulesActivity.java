@@ -129,6 +129,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}
 	}
 	
+	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		switch (id) {
 			case LOADER_RULES: 
@@ -140,6 +141,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}
 	}
 
+	@Override
 	public void onLoadFinished(Loader<Cursor> loader, final Cursor data) {
 		switch (loader.getId()) {
 			case LOADER_RULES:				
@@ -156,6 +158,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}		
 	}
 
+	@Override
 	public void onLoaderReset(Loader<Cursor> loader) {
 		switch (loader.getId()) {
 			case LOADER_RULES:

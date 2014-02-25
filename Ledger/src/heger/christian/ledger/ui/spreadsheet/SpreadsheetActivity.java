@@ -33,7 +33,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 
@@ -81,6 +80,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 			if (monthId - earliest > getCount() - 3) return null;
 			return monthId - earliest;
 		}
+		@Override
 		public int getCount() {
 			int current = pagerAdapter.getMonthId(pager.getCurrentItem());
 			int count = 1;
@@ -99,7 +99,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 			TypedArray styledAttr = getTheme().obtainStyledAttributes(new int[] { android.R.attr.listDivider });			
 			TextView divider = new TextView(SpreadsheetActivity.this); 
 			divider.setHeight(2 * (int) (getResources().getDisplayMetrics().density + 0.5f));
-			divider.setBackgroundDrawable(styledAttr.getDrawable(0));
+			divider.setBackground(styledAttr.getDrawable(0));
 			styledAttr.recycle();
 			return divider;			
 		}
@@ -131,8 +131,11 @@ public class SpreadsheetActivity extends FragmentActivity {
 			bindView(convertView, position);
 			return convertView;
 		}
+		/**
+		 * Unsupported. Always returns <code>null</code>.
+		 */
+		@Override
 		public Object getItem(int position) {
-			// TODO Auto-generated method stub
 			return null;
 		}
 		/**
@@ -140,6 +143,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 		 * <code>ID_GO_TO_LATEST</code>, <code>ID_GO_TO_MONTH</code> or <code>ID_DIVIDER</code>, otherwise it will be
 		 * the month id for that position.
 		 */
+		@Override
 		public long getItemId(int position) {
 			switch (getCount() - 1 - position) {
 				case 0: return ID_GO_TO_LATEST;
@@ -150,8 +154,8 @@ public class SpreadsheetActivity extends FragmentActivity {
 		}
 		@Override
 		public boolean hasStableIds() { return true; }
+		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-			// TODO Auto-generated method stub
 			return getDropDownView(position, convertView, parent);
 		}
 	}
@@ -182,6 +186,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 				}
 			}
 		}
+		@Override
 		public boolean onNavigationItemSelected(int itemPosition, long itemId) {
 			if ((itemId & 0x8000000000000000l) == 0) {
 				int month = (int) itemId;
@@ -194,9 +199,11 @@ public class SpreadsheetActivity extends FragmentActivity {
 						MonthsElapsedCalculator.getMonth(pagerAdapter.getMonthId(pager.getCurrentItem())),
 						MonthsElapsedCalculator.getYear(pagerAdapter.getMonthId(pager.getCurrentItem())));	
 				fragment.setDialogListener(new DialogListener() {
+					@Override
 					public void onDialogPositiveClick(DialogFragment dialog, int month, int year) {
 						moveToPosition(MonthsElapsedCalculator.getMonthsElapsed(month, year));
 					}
+					@Override
 					public void onDialogNegativeClick(DialogFragment dialog, int month, int year) {
 					}			
 				});
@@ -207,10 +214,13 @@ public class SpreadsheetActivity extends FragmentActivity {
 			return true;
 		}
 
+		@Override
 		public void onPageScrollStateChanged(int arg0) {}
 
+		@Override
 		public void onPageScrolled(int arg0, float arg1, int arg2) {}
 
+		@Override
 		public void onPageSelected(int position) {
 			moveToPosition(pagerAdapter.getMonthId(position));
 		}
@@ -366,9 +376,11 @@ public class SpreadsheetActivity extends FragmentActivity {
 				MonthsElapsedCalculator.getMonth(pagerAdapter.getMonthId(pager.getCurrentItem())),
 				MonthsElapsedCalculator.getYear(pagerAdapter.getMonthId(pager.getCurrentItem())));	
 		fragment.setDialogListener(new DialogListener() {
+			@Override
 			public void onDialogPositiveClick(DialogFragment dialog, int month, int year) {
 				pager.setCurrentItem(pagerAdapter.getIndex(MonthsElapsedCalculator.getMonthsElapsed(month, year)), true);
 			}
+			@Override
 			public void onDialogNegativeClick(DialogFragment dialog, int month, int year) {}			
 		});
 		fragment.show(getSupportFragmentManager(), "gotomonth");

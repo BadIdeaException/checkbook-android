@@ -103,6 +103,7 @@ public class RulesAdapter  extends ResourceCursorAdapter {
 				// Defer calculation until first layout. Otherwise, sizes won't be available
 				final MarginLayoutParams sourceParams = (MarginLayoutParams) source.getLayoutParams();				
 				target.addOnLayoutChangeListener(new OnLayoutChangeListener() {					
+					@Override
 					public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
 						// Try to find textview in target.
 						// This can be either the target itself (also works if target is an EditText), or

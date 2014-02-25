@@ -70,12 +70,13 @@ public class CurrencyFormattingTextWatcher implements TextWatcher {
 		this((DecimalFormat) NumberFormat.getCurrencyInstance());
 	}
 		
-	public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-	}
+	@Override
+	public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-	public void onTextChanged(CharSequence s, int start, int before, int count) {
-	}
+	@Override
+	public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
+	@Override
 	public void afterTextChanged(Editable s) {
 		if (!selfChange) {
 			selfChange = true;

@@ -62,6 +62,7 @@ public class SelectMonthDialog extends DialogFragment implements OnValueChangeLi
 		builder.setView(view);	
 		
 		DialogInterface.OnClickListener internalClickListener = new DialogInterface.OnClickListener() {
+			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				if (listener == null) return;			
 				switch (which) {
@@ -115,6 +116,7 @@ public class SelectMonthDialog extends DialogFragment implements OnValueChangeLi
 		pickMonth.setWrapSelectorWheel(minVal == Calendar.JANUARY && maxVal == Calendar.DECEMBER);		
 	}
 	
+	@Override
 	public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
 		adjustPickerBounds(newVal);
 	}

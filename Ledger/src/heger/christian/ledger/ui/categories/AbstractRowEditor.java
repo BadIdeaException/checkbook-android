@@ -1,24 +1,5 @@
 package heger.christian.ledger.ui.categories;
 
-import java.util.ArrayList;
-
-import heger.christian.ledger.R;
-import heger.christian.ledger.ui.categories.RowEditor.RowEditorListener;
-import android.content.Context;
-import android.util.SparseArray;
-import android.util.TypedValue;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.View.OnClickListener;
-import android.view.View.OnFocusChangeListener;
-import android.view.ViewGroup.MarginLayoutParams;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
 
 public class AbstractRowEditor {
 //	public interface RowEditorListener {
@@ -128,7 +109,6 @@ public class AbstractRowEditor {
 //	private int initialFocus = 0;
 //	
 //	public AbstractRowEditor() {
-//		// TODO Auto-generated constructor stub
 //	}
 //
 //	

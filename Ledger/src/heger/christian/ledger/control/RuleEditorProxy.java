@@ -46,7 +46,9 @@ public class RuleEditorProxy {
 			}
 			position = ListView.INVALID_POSITION;
 		}
+		@Override
 		public void onScrollStateChanged(AbsListView view, int scrollState) {}		
+		@Override
 		public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
 			// If the visible portion of the list hasn't actually changed, exit now to save performance
 			if (prevScrollPosition == firstVisibleItem && visibleItemCount == prevVisibleItemCount)

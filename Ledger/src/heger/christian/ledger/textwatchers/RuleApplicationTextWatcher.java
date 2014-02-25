@@ -13,6 +13,7 @@ public class RuleApplicationTextWatcher implements TextWatcher {
 	
 	protected class MatchCallback implements Runnable {
 		String phrase;
+		@Override
 		public void run() {
 			if (getRuleMatcher() != null)
 				getRuleMatcher().matchStrict(phrase);
@@ -22,10 +23,13 @@ public class RuleApplicationTextWatcher implements TextWatcher {
 	
 	private Handler handler = new Handler();
 	
+	@Override
 	public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
+	@Override
 	public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
+	@Override
 	public void afterTextChanged(Editable s) {
 		handler.removeCallbacks(callback);
 		callback.phrase = s.toString();

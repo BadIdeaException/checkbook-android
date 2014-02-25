@@ -30,6 +30,7 @@ public class ConfirmDeleteDialog extends DialogFragment {
 		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 		builder.setMessage(R.string.confirm_delete_rule);
 		builder.setPositiveButton(R.string.delete, new OnClickListener() {			
+			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				new AsyncQueryHandler(getActivity().getContentResolver()) {
 				}.startDelete(0, null, uri, null, null);

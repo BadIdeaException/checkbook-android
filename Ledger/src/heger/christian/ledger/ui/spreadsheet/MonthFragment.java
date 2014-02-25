@@ -19,7 +19,6 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,7 +49,6 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 				}
 				return true;
 			}
-			Log.d("ViewBinder", "Binding " + columnIndex + " to " + view.getId());
 			return false;
 		}
 		
@@ -112,6 +110,7 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 		return view;
 	}
 
+	@Override
 	public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
 		Cursor cursor = adapter.getChild(groupPosition, childPosition);
 		// Get id value for the clicked entry
@@ -124,6 +123,7 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 		return true;
 	}
 
+	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		return new CursorLoader(this.getActivity(), 
 				CategoryContract.CONTENT_URI, 
@@ -133,10 +133,12 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 				CategoryContract._ID);
 	}
 
+	@Override
 	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
 		adapter.setGroupCursor(data);		
 	}
 
+	@Override
 	public void onLoaderReset(Loader<Cursor> loader) {
 		adapter.setGroupCursor(null);		
 	}
