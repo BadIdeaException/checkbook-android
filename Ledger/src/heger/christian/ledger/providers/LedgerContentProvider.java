@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.util.Log;
 
 public class LedgerContentProvider extends ContentProvider {
 	public static final String AUTHORITY = "heger.christian.ledger.providers.ledgercontentprovider";
@@ -18,6 +19,8 @@ public class LedgerContentProvider extends ContentProvider {
 	public static final int URI_ENTRIES_ID = 11;
 	public static final int URI_CATEGORIES = 20;
 	public static final int URI_CATEGORIES_ID = 21;
+	public static final int URI_CATEGORIES_SUBTOTALS = 25;
+	public static final int URI_CATEGORIES_SUBTOTALS_ID = 26;
 	public static final int URI_SUPERCATEGORIES = 30;
 	public static final int URI_SUPERCATEGORIES_ID = 31;
 	public static final int URI_MONTHS = 40;
@@ -33,6 +36,8 @@ public class LedgerContentProvider extends ContentProvider {
 		URI_MATCHER.addURI(AUTHORITY, EntryContract.TABLE_NAME + "/#", URI_ENTRIES_ID);
 		URI_MATCHER.addURI(AUTHORITY, CategoryContract.TABLE_NAME, URI_CATEGORIES);
 		URI_MATCHER.addURI(AUTHORITY, CategoryContract.TABLE_NAME + "/#", URI_CATEGORIES_ID);
+		URI_MATCHER.addURI(AUTHORITY, CategorySubtotalsContract.TABLE_NAME, URI_CATEGORIES_SUBTOTALS);
+		URI_MATCHER.addURI(AUTHORITY, CategorySubtotalsContract.TABLE_NAME + "/#", URI_CATEGORIES_SUBTOTALS_ID);		
 		URI_MATCHER.addURI(AUTHORITY, SupercategoryContract.TABLE_NAME, URI_SUPERCATEGORIES);
 		URI_MATCHER.addURI(AUTHORITY, SupercategoryContract.TABLE_NAME + "/#", URI_SUPERCATEGORIES_ID);
 		URI_MATCHER.addURI(AUTHORITY, MonthsContract.TABLE_NAME, URI_MONTHS);
@@ -66,6 +71,10 @@ public class LedgerContentProvider extends ContentProvider {
 				table = CategoryContract.mapToDBContract(CategoryContract.TABLE_NAME);
 				selection = CategoryContract.mapToDBContract(CategoryContract._ID) + "=" + uri.getLastPathSegment();
 				break;
+			case URI_CATEGORIES_SUBTOTALS: //$FALL-THROUGH$
+			case URI_CATEGORIES_SUBTOTALS_ID:
+				table = CategorySubtotalsContract.TABLE_NAME;
+				throw new UnsupportedOperationException("Unsupported operation: DELETE in table " + table);
 			case URI_SUPERCATEGORIES:
 				table = SupercategoryContract.mapToDBContract(SupercategoryContract.TABLE_NAME);
 				break;
@@ -121,6 +130,14 @@ public class LedgerContentProvider extends ContentProvider {
 				typeSuffix = "item";
 				subtypeSuffix = CategoryContract.MIME_SUBTYPE_SUFFIX;
 				break;
+			case URI_CATEGORIES_SUBTOTALS: 
+				typeSuffix = "dir";
+				subtypeSuffix = CategorySubtotalsContract.MIME_SUBTYPE_SUFFIX;
+				break;
+			case URI_CATEGORIES_SUBTOTALS_ID:
+				typeSuffix = "dir";
+				subtypeSuffix = CategorySubtotalsContract.MIME_SUBTYPE_SUFFIX;
+				break;
 			case URI_SUPERCATEGORIES:
 				typeSuffix = "dir";
 				subtypeSuffix = SupercategoryContract.MIME_SUBTYPE_SUFFIX;
@@ -174,6 +191,10 @@ public class LedgerContentProvider extends ContentProvider {
 				break;
 			case URI_CATEGORIES_ID:
 				throw new IllegalArgumentException("Illegal URI for insertion: " + uri + ". Must not contain a row id.");
+			case URI_CATEGORIES_SUBTOTALS: //$FALL-THROUGH$
+			case URI_CATEGORIES_SUBTOTALS_ID:
+				table = CategorySubtotalsContract.TABLE_NAME;
+				throw new UnsupportedOperationException("Unsupported operation: INSERT in table " + table);
 			case URI_SUPERCATEGORIES:
 				table = SupercategoryContract.mapToDBContract(SupercategoryContract.TABLE_NAME);
 				break;
@@ -221,7 +242,7 @@ public class LedgerContentProvider extends ContentProvider {
 		String groupBy = null;
 		String having = null;
 		SQLiteDatabase db = dbHelper.getReadableDatabase();
-		// Queries to the entries, categories or supercategories tables
+		// Most queries, i.e. the ones corresponding directly to database tables,
 		// are simply handed through to the database.
 		// The same applies to queries to the above mentioned databases
 		// when an ID is appended to the uri, in which case the query is
@@ -250,6 +271,15 @@ public class LedgerContentProvider extends ContentProvider {
 						+ "="
 						+ uri.getLastPathSegment();
 				break;
+			case URI_CATEGORIES_SUBTOTALS: {
+				String month = uri.getQueryParameter(CategorySubtotalsContract.QUERY_ARG_MONTH);
+				tables = CategorySubtotalsContract.generateSQL(month);
+				break; }
+			case URI_CATEGORIES_SUBTOTALS_ID: {
+				String month = uri.getQueryParameter(CategorySubtotalsContract.QUERY_ARG_MONTH);
+				tables = CategorySubtotalsContract.generateSQL(month);
+				selection = CategorySubtotalsContract._ID + "=" + uri.getLastPathSegment();
+				break; }
 			case URI_SUPERCATEGORIES:
 				tables = SupercategoryContract
 						.mapToDBContract(SupercategoryContract.TABLE_NAME);
@@ -318,6 +348,10 @@ public class LedgerContentProvider extends ContentProvider {
 						+ "="
 						+ uri.getLastPathSegment();
 				break;
+			case URI_CATEGORIES_SUBTOTALS: //$FALL-THROUGH$
+			case URI_CATEGORIES_SUBTOTALS_ID:
+				table = CategorySubtotalsContract.TABLE_NAME;
+				throw new UnsupportedOperationException("Unsupported operation: DELETE in table " + table);
 			case URI_SUPERCATEGORIES:
 				table = SupercategoryContract.mapToDBContract(SupercategoryContract.TABLE_NAME);
 				break;

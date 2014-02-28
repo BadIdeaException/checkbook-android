@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/expandable_list_item"
+    android:id="@+id/list_item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-   	android:paddingLeft="@dimen/expandable_list_group_indentation"
-    android:background="?android:attr/selectableItemBackground"
-    android:baselineAligned="true"
+ 	android:gravity="center_vertical"
     android:nextFocusRight="@+id/btn_edit"
     android:orientation="horizontal" > <!--   android:focusable="true" -->
 
@@ -13,20 +11,9 @@
         android:id="@+id/txt_caption"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="9dp"
-        android:layout_marginLeft="@dimen/expandable_list_indicator_size"
-        android:layout_marginTop="9dp"
         android:layout_weight="1"
-        android:gravity="center_vertical"
         android:singleLine="true"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
-
-    <ViewStub
-        android:id="@id/edit_caption"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:inflatedId="@id/edit_caption"
-        android:layout="@layout/edittext" />
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <ImageView
         android:id="@id/btn_edit"
@@ -36,7 +23,7 @@
         android:background="?android:attr/selectableItemBackground"
         android:clickable="true"
         android:contentDescription="@string/edit"
-        android:nextFocusLeft="@id/expandable_list_item"
+        android:nextFocusLeft="@id/list_item"
         android:onClick="onEditClick"
         android:padding="8dp"
         android:scaleX="0.9"

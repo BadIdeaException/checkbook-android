@@ -13,6 +13,9 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -59,6 +62,17 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		// Set padding for content view programmatically since there is no layout resource we could set it in
+		try {
+			View parent = (View) getListView().getParent();
+			DisplayMetrics metrics = getResources().getDisplayMetrics();
+		    int horizontal = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, getResources().getDimension(R.dimen.activity_horizontal_margin), metrics);
+		    int vertical = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, getResources().getDimension(R.dimen.activity_vertical_margin), metrics);
+			parent.setPadding(horizontal, vertical, horizontal, vertical);
+		} catch (ClassCastException x) {
+			Log.e(this.getClass().getCanonicalName(), "Failed to find parent view of list for setting padding", x);
+		}
+		
 		adapter = new SimpleCursorAdapter(this, 
 				R.layout.listitem_categories, 
 				null, 

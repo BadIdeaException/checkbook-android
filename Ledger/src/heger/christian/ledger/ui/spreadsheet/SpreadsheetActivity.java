@@ -326,7 +326,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 		setContentView(R.layout.actvy_spreadsheet);
 		
 		getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
-		navigationAdapter = new NavigationAdapter(this,android.R.layout.simple_spinner_dropdown_item);
+		navigationAdapter = new NavigationAdapter(this,android.R.layout.simple_spinner_item);
 		
 		pager = (ViewPager) findViewById(R.id.viewpager);
 		pagerAdapter = new MonthPagerAdapter(getSupportFragmentManager()); 

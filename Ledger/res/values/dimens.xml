@@ -5,7 +5,8 @@
     <dimen name="expandable_list_child_indentation">36dp</dimen>
     
     <!-- Default screen margins, per the Android Design guidelines. -->
-    <dimen name="activity_horizontal_margin">16dp</dimen>
-    <dimen name="activity_vertical_margin">16dp</dimen>
+    <!-- Reset from 16dp to 8dp because 16dp resulted in awkward-looking ui -->
+    <dimen name="activity_horizontal_margin">8dp</dimen>
+    <dimen name="activity_vertical_margin">8dp</dimen>
 
 </resources>

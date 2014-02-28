@@ -24,8 +24,7 @@
     
     <!-- Text and hints for UI components -->
     <string name="app_name">Ledger</string>
-    <string name="subtotal">Subtotal</string>
-    <string name="grand_total">Grand total</string>
+    <string name="total">Total</string>
     <string name="title_activity_entry">Entry</string>
     <string name="edit_caption_hint">Caption</string>
     <string name="txt_what">What</string>
