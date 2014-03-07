@@ -1,0 +1,12 @@
+{
+  "name": "mock-oauth-server",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node mock-auth-server.js"
+  },
+  "dependencies": {
+    "express": "3.4.8",
+    "oauth2orize": ">=1.x.x"
+  }
+}

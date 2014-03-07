@@ -9,7 +9,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
-import android.util.Log;
 
 public class LedgerContentProvider extends ContentProvider {
 	public static final String AUTHORITY = "heger.christian.ledger.providers.ledgercontentprovider";

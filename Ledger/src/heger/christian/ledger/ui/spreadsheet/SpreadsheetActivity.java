@@ -12,6 +12,7 @@ import heger.christian.ledger.ui.spreadsheet.SelectMonthDialog.DialogListener;
 import java.text.DateFormatSymbols;
 import java.util.Calendar;
 
+import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.ActionBar.OnNavigationListener;
 import android.content.ContentUris;
@@ -20,6 +21,7 @@ import android.content.Intent;
 import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
@@ -95,11 +97,16 @@ public class SpreadsheetActivity extends FragmentActivity {
 		public boolean isEnabled(int position) {
 			return position != getCount() - 3; // Only two items, but position is zero based
 		}
+		@SuppressWarnings("deprecation")
+		@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 		private View getDivider() {
 			TypedArray styledAttr = getTheme().obtainStyledAttributes(new int[] { android.R.attr.listDivider });			
 			TextView divider = new TextView(SpreadsheetActivity.this); 
 			divider.setHeight(2 * (int) (getResources().getDisplayMetrics().density + 0.5f));
-			divider.setBackground(styledAttr.getDrawable(0));
+			if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.JELLY_BEAN) {
+				divider.setBackgroundDrawable(styledAttr.getDrawable(0));
+			} else { divider.setBackground(styledAttr.getDrawable(0)); }
+			
 			styledAttr.recycle();
 			return divider;			
 		}

@@ -1,0 +1,19 @@
+<resources>
+
+    <string name="title_activity_login">Sign into your account</string>
+
+    <!-- Strings related to login -->
+    <string name="username">User name</string>
+    <string name="password">Password</string>
+    <string name="action_sign_in_register"><b>Sign in</b> or register</string>
+    <string name="sign_in">Sign in</string>
+   <string name="action_forgot_password">Recover lost password</string>
+    <string name="login_progress_signing_in">Signing in&#8230;</string>
+
+    <string name="err_incorrect_credentials">User name or password incorrect</string>
+    <string name="err_username_required">You have to provide a user name</string>
+    <string name="err_password_required">You have to provide a password</string>
+    <string name="err_username_and_password_required">You have to provide a user name and a password</string>
+    <string name="err_network_error">There was a network error during the procedure. Please try again later.</string>
+
+</resources>
