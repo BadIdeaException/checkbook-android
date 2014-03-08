@@ -39,13 +39,6 @@
             android:scrollHorizontally="true"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 
-        <ViewStub
-            android:id="@id/edit_caption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inflatedId="@id/edit_caption"
-            android:layout="@layout/edittext" />
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -68,12 +61,6 @@
             android:maxLines="1"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 
-        <ViewStub
-            android:id="@id/spin_category"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inflatedId="@id/spin_category"
-            android:layout="@layout/spinner" />
     </LinearLayout>
 
     <View

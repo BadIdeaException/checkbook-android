@@ -6,7 +6,8 @@ import heger.christian.ledger.control.RuleEditorProxy;
 import heger.christian.ledger.db.CursorAccessHelper;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.RulesContract;
-import android.app.ActionBar;
+import heger.christian.ledger.ui.categories.EditRuleDialog;
+import heger.christian.ledger.ui.categories.EditRuleDialog.EditRuleDialogListener;
 import android.app.DialogFragment;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -28,10 +29,35 @@ import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
 public class RulesActivity extends ListActivity implements LoaderCallbacks<Cursor> {	
-	private static final String TAG = "RulesActivity";	
+	private class EditDialogListener implements EditRuleDialogListener {
+		private final long id;
+		private final String caption;
+		private final long category;
 
-	private static final int ACTION_BAR_DEFAULT = 
-			ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME| ActionBar.DISPLAY_SHOW_TITLE;
+		private EditDialogListener(long id, String caption, long category) {
+			this.id = id;
+			this.caption = caption;
+			this.category = category;
+		}
+
+		@Override
+		public void onClose(String caption, long category) {
+			Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, id);
+			ContentValues values = null;
+			if (!caption.equals(this.caption)) {
+				values = new ContentValues();
+				values.put(RulesContract.COL_NAME_ANTECEDENT, caption);
+			}
+			if (category != this.category) {
+				if (values == null) values = new ContentValues();
+				values.put(RulesContract.COL_NAME_CONSEQUENT, category);
+			}
+			if (values != null)
+				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
+		}
+	}
+
+	private static final String TAG = RulesActivity.class.getSimpleName();	
 
 	private static final int LOADER_RULES = 1;
 	private static final int LOADER_CATEGORIES = 2;
@@ -39,6 +65,8 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	private static final String STATE_EDITING_ID = "editing_id";
 	private static final String STATE_EDITING_VALUE_CAPTION = "editing_value_caption";
 	private static final String STATE_EDITING_VALUE_CATEGORY = "editing_value_category";
+
+	private static final String EDIT_DIALOG_TAG = EditRuleDialog.class.getCanonicalName();
 
 	private RulesAdapter rulesAdapter;
 	CursorAdapter categoriesAdapter;
@@ -65,9 +93,6 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}; 		
 		getLoaderManager().initLoader(LOADER_CATEGORIES, null, this);
 		
-		FixedViewFactory factory = new FixedViewFactory(this);
-		getListView().addHeaderView(factory.createAddView());
-		
 		rulesAdapter = new RulesAdapter(this, R.layout.listitem_rules, null, 0);
 		rulesAdapter.setCategoryAdapter(categoriesAdapter);
 		
@@ -77,22 +102,17 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		list.setItemsCanFocus(true);	
 		list.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 				
-		// Re-created activity while a row was being edited.
-		// Restore editing state
-		if (savedInstanceState != null && savedInstanceState.containsKey(STATE_EDITING_ID)) {
-			long id = savedInstanceState.getLong(STATE_EDITING_ID);			
-			proxy = new RuleEditorProxy(list, rulesAdapter, id);
-			proxy.setInitialValues(savedInstanceState.getString(STATE_EDITING_VALUE_CAPTION), savedInstanceState.getInt(STATE_EDITING_VALUE_CATEGORY));
-			startEditing(id);
+		// Re-created activity while a category was being edited.
+		// Reattach dialog listener
+		if (savedInstanceState != null) {
+			EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
+			if (dialog != null && savedInstanceState.containsKey(STATE_EDITING_ID)) {
+				String caption = savedInstanceState.getString(STATE_EDITING_VALUE_CAPTION);
+				if (caption == null) caption = "";
+				long category = savedInstanceState.getLong(STATE_EDITING_VALUE_CATEGORY);
+				dialog.setDialogListener(new EditDialogListener(savedInstanceState.getLong(STATE_EDITING_ID), caption, category));
+			}
 		}
-	}
-
-	@Override
-	public void onBackPressed() {
-		if (rulesAdapter.getEditingId() == RulesAdapter.NOT_EDITING)
-			super.onBackPressed();
-		else 
-			stopEditing();
 	}
 
 	/**
@@ -170,67 +190,33 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 				break;
 		}		
 	}	
-
-	public void startEditing(final long id) {
-		ListView list = getListView();		
-		long prevId = rulesAdapter.getEditingId();
-		rulesAdapter.setEditingId(id);
-		
-		// Update view for the previous editing position
-		View v = getItemForId(prevId);
-		if (v != null) {
-			rulesAdapter.getView(rulesAdapter.getItemPosition(prevId), v, list);
-		}
-		// Update view for new editing position, if any
-		if (id != RulesAdapter.NOT_EDITING) {			
-			v = getItemForId(id);
-			if (v != null) {
-				rulesAdapter.getView(rulesAdapter.getItemPosition(id), v, list);
-			}
-			
-			// If there is an alive proxy for this id already, reuse the existing proxy. 
-			// (This is the case if the user clicks the edit button for the same item he's
-			// already editing, or when recreating from a configuration change)
-			if (!(proxy != null && proxy.isAlive() && proxy.getId() == id)) {
-				if (proxy != null) 
-					// Close an existing proxy if necessary
-					proxy.close();					
-				// Create new proxy for this edit
-				proxy = new RuleEditorProxy(list, rulesAdapter, id);
-			}
-			
-			// Set action bar to display custom action mode containing "Done" and "Cancel" buttons
-			getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
-					ACTION_BAR_DEFAULT | ActionBar.DISPLAY_SHOW_CUSTOM);
-			getActionBar().setCustomView(R.layout.edit_actionbar);
-
-			
-		}
-	}
 	
-	public void stopEditing() {
-		try {
-			long prevId = rulesAdapter.getEditingId(); 
-
-			rulesAdapter.setEditingId(RulesAdapter.NOT_EDITING);
-			ListView list = getListView();
-			// Update view for the previous editing position
-			// Is the item currently visible?
-			View v = getItemForId(prevId);
-			if (v != null) {
-				rulesAdapter.getView(rulesAdapter.getItemPosition(prevId), v, list);
-			}
-			getActionBar().setDisplayOptions(ACTION_BAR_DEFAULT);
-		} finally {
-			proxy.close();		
+	/**
+	 * Edits the item at the specified position
+	 * @param position - Position in the list to edit. Must be larger than the number of header views
+	 * @throws IllegalArgumentException - If the position corresponds to one of the header views
+	 */
+	public void edit(int position) {
+		if (position < getListView().getHeaderViewsCount()) {
+			throw new IllegalArgumentException("Cannot edit position " + position + " with header views count " + getListView().getHeaderViewsCount());
+		} else {
+			position -= getListView().getHeaderViewsCount();
 		}
+		long id = rulesAdapter.getItemId(position);
+		
+		Cursor cursor = (Cursor) rulesAdapter.getItem(position);
+		String caption = cursor.getString(cursor.getColumnIndex(RulesContract.COL_NAME_ANTECEDENT));
+		long category = cursor.getLong(cursor.getColumnIndex(RulesContract.COL_NAME_CONSEQUENT));
+		
+		EditRuleDialog dialog = EditRuleDialog.newInstance(caption, category, categoriesAdapter);
+		dialog.setDialogListener(new EditDialogListener(id, caption, category));
+		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
 	}
 
 	public void onEditClick(View view) {
-		ViewGroup item = (ViewGroup) view.getParent().getParent();				
 		ListView list = getListView();
-		long id = list.getItemIdAtPosition(list.getPositionForView(item));
-		startEditing(id);
+		int position = list.getPositionForView(view);
+		edit(position);		
 	}
 
 	public void onDeleteClick(View view) {
@@ -242,43 +228,9 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			Log.e(TAG, "Couldn't find id for item requested for deletion");
 			return;
 		}
-		if (id == rulesAdapter.getEditingId()) 
-			stopEditing();
 		
 		Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, id);		
 		DialogFragment dialog = ConfirmDeleteDialog.newInstance(uri);
 		dialog.show(getFragmentManager(), ConfirmDeleteDialog.class.toString());
-	}
-
-	public void onCustomActionModeClick(View view) {
-		switch (view.getId()) {
-			case R.id.action_done:				
-				// Store values in the database
-				Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, rulesAdapter.getEditingId());
-				ContentValues content = new ContentValues(1);
-				content.put(RulesContract.COL_NAME_ANTECEDENT, proxy.getCaption());
-				content.put(RulesContract.COL_NAME_CONSEQUENT, proxy.getCategory());
-				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, content, null, null);
-				//$FALL-THROUGH$
-			case R.id.action_cancel:				
-				// Put the row out of editing mode
-				stopEditing();
-		}
-		
-	}
-
-	private View getItemForId(long id) {
-		ListView list = getListView();
-		// Shortcut to avoid the loop 
-		if (id == ListView.INVALID_ROW_ID)
-			return null;
-		
-		for (int position = list.getFirstVisiblePosition(); position <= list.getLastVisiblePosition(); position++) 
-			if (list.getItemIdAtPosition(position) == id) {
-				position -= list.getFirstVisiblePosition();
-				return list.getChildAt(position);
-				
-			}
-		return null; 
 	}
 }
