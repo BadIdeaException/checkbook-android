@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.provider.BaseColumns;
 
 public class LedgerContentProvider extends ContentProvider {
 	public static final String AUTHORITY = "heger.christian.ledger.providers.ledgercontentprovider";
@@ -50,6 +51,7 @@ public class LedgerContentProvider extends ContentProvider {
 	public static final String MIME_SUBTYPE = "vnd.heger.christian.ledger.provider";
 
 	private SQLiteOpenHelper dbHelper;
+	private KeyGenerator keyGenerator;
 
 	@Override
 	public int delete(Uri uri, String selection, String[] selectionArgs) {
@@ -175,6 +177,10 @@ public class LedgerContentProvider extends ContentProvider {
 		return MIME_TYPE + typeSuffix + "/" + MIME_SUBTYPE + subtypeSuffix;
 	}
 
+	protected long generateKey(String table) {
+		return keyGenerator.generateKey(table);
+	}
+	
 	@Override
 	public Uri insert(Uri uri, ContentValues values) {
 		String table;
@@ -199,8 +205,7 @@ public class LedgerContentProvider extends ContentProvider {
 				break;
 			case URI_SUPERCATEGORIES_ID:
 				throw new IllegalArgumentException("Illegal URI for insertion: " + uri + ". Must not contain a row id.");
-			case URI_MONTHS:
-				throw new UnsupportedOperationException("Write access to view " + MonthsContract.TABLE_NAME + " is not supported.");
+			case URI_MONTHS: //$FALL_THROUGH$
 			case URI_MONTHS_ID:
 				throw new UnsupportedOperationException("Write access to view " + MonthsContract.TABLE_NAME + " is not supported.");
 			case URI_RULES:
@@ -216,7 +221,15 @@ public class LedgerContentProvider extends ContentProvider {
 			default:
 				throw new IllegalArgumentException("Could not match passed URI to a known path: " + uri);
 		}
+		// Generate a primary key for insertion
+		long key = generateKey(table);
+		if (!values.containsKey(BaseColumns._ID)) {
+			values.put(BaseColumns._ID, key);
+		}
 		long rowID = db.insertOrThrow(table, null, values);
+		if (rowID != key) {
+			throw new IllegalStateException("Generated key was " + key + " but database inserted as " + rowID + " in table " + table);
+		}
 		uri = ContentUris.withAppendedId(uri, rowID);
 		if (rowID > -1)
 			getContext().getContentResolver().notifyChange(uri, null);
@@ -232,6 +245,7 @@ public class LedgerContentProvider extends ContentProvider {
 		 * dbHelper.getWritableDatabase is called
 		 */
 		dbHelper = new LedgerDbHelper(getContext());
+		keyGenerator = new KeyGenerator();
 		return true;
 	}
 
