@@ -10,7 +10,8 @@
 	    android:layout_height="wrap_content"
 	    android:layout_weight="1"
 	    android:maxLines="1"
-	    android:inputType="text"/>
+	    android:singleLine="true"
+	    android:inputType="text" />
 	
 	<ImageView
         android:id="@id/btn_done"

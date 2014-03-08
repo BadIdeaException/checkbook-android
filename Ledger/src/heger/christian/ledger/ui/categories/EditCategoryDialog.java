@@ -35,7 +35,6 @@ public class EditCategoryDialog extends DialogFragment {
 		View view = inflater.inflate(R.layout.dlg_edit_category, null);
 		builder.setView(view);	
 		editCaption = (EditText) view.findViewById(R.id.edit_caption);
-		editCaption.selectAll();
 		view.findViewById(R.id.btn_done).setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -45,8 +44,12 @@ public class EditCategoryDialog extends DialogFragment {
 		
 		Bundle args = getArguments();
 		if (args != null) {
-			editCaption.setText(args.getString(ARG_CAPTION, ""));
+			String caption = args.getString(ARG_CAPTION);
+			if (caption == null) caption = "";
+			editCaption.setText(caption);
 		}
+		editCaption.selectAll();
+		editCaption.requestFocus();
 		
 		return builder.create();
 	}

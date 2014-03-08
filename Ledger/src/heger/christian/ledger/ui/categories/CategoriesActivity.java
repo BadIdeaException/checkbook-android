@@ -3,6 +3,7 @@ package heger.christian.ledger.ui.categories;
 import heger.christian.ledger.R;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.ui.categories.EditCategoryDialog.EditCategoryDialogListener;
+import android.annotation.TargetApi;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.AsyncQueryHandler;
@@ -12,6 +13,7 @@ import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -36,7 +38,7 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 
 		@Override
 		public void onClose(String caption) {
-			if (caption != this.caption) {
+			if (!caption.equals(this.caption)) {
 				Uri uri = ContentUris.withAppendedId(CategoryContract.CONTENT_URI, id);
 				ContentValues values = new ContentValues();
 				values.put(CategoryContract.COL_NAME_CAPTION, caption);
@@ -90,8 +92,9 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 		if (savedInstanceState != null) {
 			EditCategoryDialog dialog = (EditCategoryDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
 			if (dialog != null && savedInstanceState.containsKey(ARG_EDITING_ID)) {
-				dialog.setDialogListener(new EditDialogListener(savedInstanceState.getLong(ARG_EDITING_ID), 
-						savedInstanceState.getString(ARG_EDITING_CAPTION, "")));
+				String caption = savedInstanceState.getString(ARG_EDITING_CAPTION);
+				if (caption == null) caption = "";
+				dialog.setDialogListener(new EditDialogListener(savedInstanceState.getLong(ARG_EDITING_ID), caption));
 			}
 		}
 	}
@@ -157,9 +160,14 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 				// Add temporary layout listener to the list view to make sure the list view and its adapter have
 				// already been updated to the insert before scrolling and editing 
 				list.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+					@SuppressWarnings("deprecation")
+					@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 					@Override
 					public void onGlobalLayout() { 
-						list.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+						if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN)
+							list.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+						else
+							list.getViewTreeObserver().removeGlobalOnLayoutListener(this);
 						
 						int position;
 						for (position = 0; position < adapter.getCount(); position++)
