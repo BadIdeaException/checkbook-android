@@ -1,4 +1,4 @@
-package heger.christian.ledger.ui.categories;
+package heger.christian.ledger.ui.rules;
 
 import heger.christian.ledger.R;
 import heger.christian.ledger.db.CursorAccessHelper;
@@ -12,10 +12,10 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.CursorAdapter;
 import android.widget.EditText;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Spinner;
-import android.widget.SpinnerAdapter;
 
 public class EditRuleDialog extends DialogFragment {
 	public static final String ARG_CAPTION = "caption";
@@ -27,16 +27,20 @@ public class EditRuleDialog extends DialogFragment {
 	private EditRuleDialogListener listener = null;
 	private EditText editCaption;
 	private Spinner spinCategory;
-	private SpinnerAdapter adapter;
+	private Cursor categories;
+	private CursorAdapter adapter;
 	
-	public static EditRuleDialog newInstance(String caption, long category, SpinnerAdapter adapter) {
+	public static EditRuleDialog newInstance(String caption, long category, Cursor categories) {
 		EditRuleDialog dialog = new EditRuleDialog();
-		if (adapter != null)
-			dialog.adapter = adapter;
+		if (categories != null)
+			dialog.categories = categories;
+		else
+			throw new IllegalArgumentException("Cannot edit rule without categories");
 		
 		Bundle args = new Bundle();
 		args.putString(ARG_CAPTION, caption);
 		args.putLong(ARG_CATEGORY, category);
+		
 		dialog.setArguments(args);
 		return dialog;
 	}
@@ -66,20 +70,19 @@ public class EditRuleDialog extends DialogFragment {
 		editCaption = (EditText) view.findViewById(R.id.edit_caption);
 		
 		spinCategory = (Spinner) view.findViewById(R.id.spin_category);
-		if (adapter == null) {
-			adapter = new SimpleCursorAdapter(getActivity(),
-					android.R.layout.simple_spinner_item,
-					null,
-					new String[] { CategoryContract.COL_NAME_CAPTION },
-					new int[] { android.R.id.text1 }, 0) {
-				@Override
-				public long getItemId(int position) {
-					Cursor cursor = getCursor();
-					cursor.moveToPosition(position);
-					return CursorAccessHelper.getInt(cursor, CategoryContract._ID);
-				}
-			}; 		
-		}
+		
+		adapter = new SimpleCursorAdapter(getActivity(),
+				android.R.layout.simple_spinner_item,
+				categories,
+				new String[] { CategoryContract.COL_NAME_CAPTION },
+				new int[] { android.R.id.text1 }, 0) {
+			@Override
+			public long getItemId(int position) {
+				Cursor cursor = getCursor();
+				cursor.moveToPosition(position);
+				return CursorAccessHelper.getInt(cursor, CategoryContract._ID);
+			}
+		}; 		
 		spinCategory.setAdapter(adapter);
 				
 		Bundle args = getArguments();
@@ -102,8 +105,20 @@ public class EditRuleDialog extends DialogFragment {
 				if (listener != null) listener.onClose(editCaption.getText().toString(), spinCategory.getSelectedItemId());
 				dismiss();			
 			}
+		}).setNegativeButton(android.R.string.cancel, new OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dismiss();
+			}
 		});
 		return builder.create();
+	}
+	
+	public void setCategories(Cursor categories) {
+		this.categories = categories;
+		// Null check is necessary because this might get called before onCreate
+		if (adapter != null)
+			adapter.swapCursor(categories);
 	}
 	
 	/**

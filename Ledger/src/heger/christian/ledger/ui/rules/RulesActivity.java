@@ -1,13 +1,9 @@
 package heger.christian.ledger.ui.rules;
 
 import heger.christian.ledger.R;
-import heger.christian.ledger.adapters.RulesAdapter;
-import heger.christian.ledger.control.RuleEditorProxy;
-import heger.christian.ledger.db.CursorAccessHelper;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.RulesContract;
-import heger.christian.ledger.ui.categories.EditRuleDialog;
-import heger.christian.ledger.ui.categories.EditRuleDialog.EditRuleDialogListener;
+import heger.christian.ledger.ui.rules.EditRuleDialog.EditRuleDialogListener;
 import android.app.DialogFragment;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -21,28 +17,39 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.SimpleCursorAdapter.ViewBinder;
+import android.widget.TextView;
 
 public class RulesActivity extends ListActivity implements LoaderCallbacks<Cursor> {	
-	private class EditDialogListener implements EditRuleDialogListener {
+	private class AddRuleDialogListener implements EditRuleDialogListener {
+		@Override
+		public void onClose(String caption, long category) {
+			Uri uri = RulesContract.CONTENT_URI;
+			ContentValues values = new ContentValues();
+			values.put(RulesContract.COL_NAME_ANTECEDENT, caption);
+			values.put(RulesContract.COL_NAME_CONSEQUENT, category);
+			new AsyncQueryHandler(getContentResolver()) {}.startInsert(0, null, uri, values);
+		}
+	}
+	private class ModifyRuleDialogListener implements EditRuleDialogListener {
 		private final long id;
 		private final String caption;
 		private final long category;
-
-		private EditDialogListener(long id, String caption, long category) {
+		public ModifyRuleDialogListener(long id, String caption, long category) {
 			this.id = id;
 			this.caption = caption;
 			this.category = category;
 		}
-
 		@Override
 		public void onClose(String caption, long category) {
 			Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, id);
+			
 			ContentValues values = null;
 			if (!caption.equals(this.caption)) {
 				values = new ContentValues();
@@ -54,6 +61,59 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			}
 			if (values != null)
 				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
+		}
+	}
+	
+	private class RuleViewBinder implements ViewBinder {
+		private class RuleColumns {
+			private int caption;
+			private int category;
+			public void indexColumns(Cursor sample) {
+				caption = sample.getColumnIndex(RulesContract.COL_NAME_ANTECEDENT);
+				category = sample.getColumnIndex(RulesContract.COL_NAME_CONSEQUENT);
+			}
+		}
+		private class CategoryColumns {
+			private int id;
+			private int caption;
+			public void indexColumns(Cursor sample) {
+				id = sample.getColumnIndex(CategoryContract._ID);
+				caption = sample.getColumnIndex(CategoryContract.COL_NAME_CAPTION);
+			}
+		}
+		private RuleColumns ruleColumns;
+		private CategoryColumns categoryColumns;
+		private Cursor categories;
+		@Override
+		public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+			if (ruleColumns == null) {
+				ruleColumns = new RuleColumns();
+				ruleColumns.indexColumns(cursor);
+			}
+			if (columnIndex == ruleColumns.caption) {
+				((TextView) view).setText(cursor.getString(columnIndex));
+				return true;
+			}
+			if (columnIndex == ruleColumns.category && categories != null) {
+				categories.moveToPosition(-1);
+				while (categories.moveToNext())
+					if (categories.getLong(categoryColumns.id) == cursor.getLong(ruleColumns.category)) {
+						((TextView) view).setText(categories.getString(categoryColumns.caption));
+						return true;
+					}
+			} 
+			return false;
+		}
+		
+		public void setCategories(Cursor categories) {
+			if (categories != this.categories) {
+				this.categories = categories;
+				if (categories != null) {
+					categoryColumns = new CategoryColumns();
+					categoryColumns.indexColumns(categories);
+				} else
+					categoryColumns = null;
+			}
 		}
 	}
 
@@ -68,35 +128,42 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 
 	private static final String EDIT_DIALOG_TAG = EditRuleDialog.class.getCanonicalName();
 
-	private RulesAdapter rulesAdapter;
-	CursorAdapter categoriesAdapter;
+	private SimpleCursorAdapter adapter;
 
-	private RuleEditorProxy proxy;
+	private RuleViewBinder viewBinder;
 	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.rules, menu);
+		return true;
+	}
+
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		// Show the Up button in the action bar.
 		setupActionBar();
 
-		categoriesAdapter = new SimpleCursorAdapter(this,
-				android.R.layout.simple_spinner_item,
-				null,
-				new String[] { CategoryContract.COL_NAME_CAPTION },
-				new int[] { android.R.id.text1 }, 0) {
+		getLoaderManager().initLoader(LOADER_CATEGORIES, null, this);
+		
+		adapter = new SimpleCursorAdapter(this, 
+				R.layout.listitem_rules, 
+				null, 
+				new String[] { RulesContract.COL_NAME_ANTECEDENT, RulesContract.COL_NAME_CONSEQUENT }, 
+				new int[] { R.id.txt_caption, R.id.txt_category }, 0) {
 			@Override
 			public long getItemId(int position) {
 				Cursor cursor = getCursor();
 				cursor.moveToPosition(position);
-				return CursorAccessHelper.getInt(cursor, CategoryContract._ID);
+				return cursor.getLong(cursor.getColumnIndex(RulesContract._ID));
 			}
-		}; 		
-		getLoaderManager().initLoader(LOADER_CATEGORIES, null, this);
+		};
+		viewBinder = new RuleViewBinder();
+		adapter.setViewBinder(viewBinder);
+
 		
-		rulesAdapter = new RulesAdapter(this, R.layout.listitem_rules, null, 0);
-		rulesAdapter.setCategoryAdapter(categoriesAdapter);
-		
-		setListAdapter(rulesAdapter);		
+		setListAdapter(adapter);		
 		getLoaderManager().initLoader(LOADER_RULES, null, this);
 		ListView list = getListView();
 		list.setItemsCanFocus(true);	
@@ -106,11 +173,20 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		// Reattach dialog listener
 		if (savedInstanceState != null) {
 			EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
-			if (dialog != null && savedInstanceState.containsKey(STATE_EDITING_ID)) {
-				String caption = savedInstanceState.getString(STATE_EDITING_VALUE_CAPTION);
-				if (caption == null) caption = "";
-				long category = savedInstanceState.getLong(STATE_EDITING_VALUE_CATEGORY);
-				dialog.setDialogListener(new EditDialogListener(savedInstanceState.getLong(STATE_EDITING_ID), caption, category));
+			if (dialog != null) {
+				dialog.setCategories(viewBinder.categories);
+				EditRuleDialogListener listener;
+				if (savedInstanceState.containsKey(STATE_EDITING_ID)) {
+					// Create listener for modifying an existing rule
+					String caption = savedInstanceState.getString(STATE_EDITING_VALUE_CAPTION);
+					if (caption == null) caption = "";
+					long category = savedInstanceState.getLong(STATE_EDITING_VALUE_CATEGORY);
+					listener = new ModifyRuleDialogListener(savedInstanceState.getLong(STATE_EDITING_ID), caption, category);
+				} else {
+					// Create listener for a new rule
+					listener = new AddRuleDialogListener();
+				}
+				dialog.setDialogListener(listener);
 			}
 		}
 	}
@@ -142,10 +218,16 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	@Override
 	protected void onSaveInstanceState(Bundle state) {
 		super.onSaveInstanceState(state);
-		if (proxy != null && proxy.isAlive()) {
-			state.putLong(STATE_EDITING_ID, rulesAdapter.getEditingId());			
-			state.putString(STATE_EDITING_VALUE_CAPTION, proxy.getCaption());
-			state.putInt(STATE_EDITING_VALUE_CATEGORY, proxy.getCategory());
+		// If currently editing, store edited id and old caption
+		EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
+		if (dialog != null) {
+			EditRuleDialogListener listener = dialog.getDialogListener();
+			// If modifying existing rule, save parameters necessary to recreate
+			if (listener instanceof ModifyRuleDialogListener) {
+				state.putLong(STATE_EDITING_ID, ((ModifyRuleDialogListener) listener).id);
+				state.putString(STATE_EDITING_VALUE_CAPTION, ((ModifyRuleDialogListener) listener).caption);
+				state.putLong(STATE_EDITING_VALUE_CATEGORY, ((ModifyRuleDialogListener) listener).category);
+			}
 		}
 	}
 	
@@ -163,17 +245,28 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 
 	@Override
 	public void onLoadFinished(Loader<Cursor> loader, final Cursor data) {
+		ListView list = getListView();
 		switch (loader.getId()) {
 			case LOADER_RULES:				
-				rulesAdapter.swapCursor(data);
+				adapter.swapCursor(data);
 				if (data.getCount() == 0)
-					getListView().setEmptyView(new FixedViewFactory(this).createEmptyView());
+					list.setEmptyView(new FixedViewFactory(this).createEmptyView());
 				break;
 			case LOADER_CATEGORIES:
-				categoriesAdapter.swapCursor(data);
+				viewBinder.setCategories(data);
 				if (data.getCount() == 0) 
 					// If no categories exist in the db, show a special view
-					getListView().setEmptyView(new FixedViewFactory(this).createNoCategoriesView());				
+					list.setEmptyView(new FixedViewFactory(this).createNoCategoriesView());				
+				else {
+					// If currently showing a dialog, update its categories
+					EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);  
+					if (dialog != null) {
+						dialog.setCategories(data);
+					}
+					// Update all visible rule views
+					for (int i = list.getFirstVisiblePosition(); i <= list.getLastVisiblePosition(); i++) 
+						adapter.bindView(list.getChildAt(i), this, adapter.getCursor());
+				}
 				break;
 		}		
 	}
@@ -182,41 +275,31 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	public void onLoaderReset(Loader<Cursor> loader) {
 		switch (loader.getId()) {
 			case LOADER_RULES:
-				rulesAdapter.swapCursor(null);
+				adapter.swapCursor(null);
 				break;
 			case LOADER_CATEGORIES:
-				categoriesAdapter.swapCursor(null);
-				rulesAdapter.setCategoryAdapter(null);
+				viewBinder.setCategories(null);
+				EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);  
+				if (dialog != null) {
+					dialog.setCategories(null);
+				}
 				break;
 		}		
 	}	
-	
-	/**
-	 * Edits the item at the specified position
-	 * @param position - Position in the list to edit. Must be larger than the number of header views
-	 * @throws IllegalArgumentException - If the position corresponds to one of the header views
-	 */
-	public void edit(int position) {
-		if (position < getListView().getHeaderViewsCount()) {
-			throw new IllegalArgumentException("Cannot edit position " + position + " with header views count " + getListView().getHeaderViewsCount());
-		} else {
-			position -= getListView().getHeaderViewsCount();
-		}
-		long id = rulesAdapter.getItemId(position);
-		
-		Cursor cursor = (Cursor) rulesAdapter.getItem(position);
-		String caption = cursor.getString(cursor.getColumnIndex(RulesContract.COL_NAME_ANTECEDENT));
-		long category = cursor.getLong(cursor.getColumnIndex(RulesContract.COL_NAME_CONSEQUENT));
-		
-		EditRuleDialog dialog = EditRuleDialog.newInstance(caption, category, categoriesAdapter);
-		dialog.setDialogListener(new EditDialogListener(id, caption, category));
-		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
-	}
 
 	public void onEditClick(View view) {
 		ListView list = getListView();
 		int position = list.getPositionForView(view);
-		edit(position);		
+		position -= list.getHeaderViewsCount();
+		long id = adapter.getItemId(position);
+		
+		Cursor cursor = (Cursor) adapter.getItem(position);
+		String caption = cursor.getString(cursor.getColumnIndex(RulesContract.COL_NAME_ANTECEDENT));
+		long category = cursor.getLong(cursor.getColumnIndex(RulesContract.COL_NAME_CONSEQUENT));
+		
+		EditRuleDialog dialog = EditRuleDialog.newInstance(caption, category, viewBinder.categories);
+		dialog.setDialogListener(new ModifyRuleDialogListener(id, caption, category));
+		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
 	}
 
 	public void onDeleteClick(View view) {
@@ -232,5 +315,17 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, id);		
 		DialogFragment dialog = ConfirmDeleteDialog.newInstance(uri);
 		dialog.show(getFragmentManager(), ConfirmDeleteDialog.class.toString());
+	}
+	
+	public boolean onAddClick(MenuItem menu) {
+		// Per default, select first category available
+		viewBinder.categories.moveToFirst();
+		long category = viewBinder.categories.getLong(viewBinder.categories.getColumnIndex(CategoryContract._ID));
+		
+		EditRuleDialog dialog = EditRuleDialog.newInstance("", category, viewBinder.categories);
+		dialog.setDialogListener(new AddRuleDialogListener());
+		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
+		
+		return true;
 	}
 }

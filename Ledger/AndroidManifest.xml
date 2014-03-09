@@ -71,7 +71,12 @@
             android:authorities="heger.christian.ledger.providers.ledgercontentprovider"
             android:exported="false" >
         </provider>
-
+        <provider
+            android:name="heger.christian.ledger.providers.MetaContentProvider"
+            android:authorities="heger.christian.ledger.meta"
+            android:exported="false" >
+        </provider>
+        
         <!-- Account authentication service -->
 		<service 
 		    android:name=".accounts.AuthenticatorService">
