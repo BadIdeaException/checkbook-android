@@ -4,5 +4,5 @@
     <!-- Reset from 16dp to 8dp because 16dp resulted in awkward-looking ui -->
     <dimen name="activity_horizontal_margin">8dp</dimen>
     <dimen name="activity_vertical_margin">8dp</dimen>
-
+	<dimen name="dialog_padding">8dp</dimen>
 </resources>
