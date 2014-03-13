@@ -4,12 +4,16 @@ import heger.christian.ledger.R;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-
+import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
 public class EditCategoryDialog extends DialogFragment {
 	protected static final String ARG_CAPTION = "caption";
 	
@@ -35,13 +39,23 @@ public class EditCategoryDialog extends DialogFragment {
 		View view = inflater.inflate(R.layout.dlg_edit_category, null);
 		builder.setView(view);	
 		editCaption = (EditText) view.findViewById(R.id.edit_caption);
-		view.findViewById(R.id.btn_done).setOnClickListener(new OnClickListener() {
+		editCaption.setOnEditorActionListener(new OnEditorActionListener() {
 			@Override
-			public void onClick(View v) {
-				onDoneClick(v);
+			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+				if (actionId == R.id.ime_enter || actionId == EditorInfo.IME_NULL) {
+					onPositiveClick();
+					return true;
+				}
+				return false;
 			}
 		});
-		
+
+		builder.setPositiveButton(android.R.string.ok, new OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				onPositiveClick();
+			}
+		}).setNegativeButton(android.R.string.cancel, null);
 		Bundle args = getArguments();
 		if (args != null) {
 			String caption = args.getString(ARG_CAPTION);
@@ -53,8 +67,8 @@ public class EditCategoryDialog extends DialogFragment {
 		
 		return builder.create();
 	}
-
-	public void onDoneClick(View v) {
+	
+	protected void onPositiveClick() {
 		if (listener != null) listener.onClose(editCaption.getText().toString());
 		dismiss();
 	}

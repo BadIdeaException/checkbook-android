@@ -1,9 +1,11 @@
 package heger.christian.ledger.ui.categories;
 
+import heger.christian.ledger.OutOfKeysReaction;
+import heger.christian.ledger.OutOfKeysReaction.KeyRequestResultListener;
 import heger.christian.ledger.R;
+import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.ui.categories.EditCategoryDialog.EditCategoryDialogListener;
-import android.annotation.TargetApi;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.AsyncQueryHandler;
@@ -13,7 +15,6 @@ import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -21,17 +22,26 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
 public class CategoriesActivity extends ListActivity implements LoaderCallbacks<Cursor> {
-	private class EditDialogListener implements EditCategoryDialogListener {
+	private class AddCategoryDialogListener implements EditCategoryDialogListener {
+		@Override
+		public void onClose(String caption) {			
+			final Uri uri = CategoryContract.CONTENT_URI;
+			final ContentValues values = new ContentValues();
+			values.put(CategoryContract.COL_NAME_CAPTION, caption);
+			new AsyncQueryHandler(getContentResolver()) {
+			}.startInsert(0, null, uri, values);
+		}
+	}
+	private class ModifyCategoryDialogListener implements EditCategoryDialogListener {
 		private final long id;
 		private final String caption;
 
-		private EditDialogListener(long id, String caption) {
+		private ModifyCategoryDialogListener(long id, String caption) {
 			this.id = id;
 			this.caption = caption;
 		}
@@ -49,8 +59,8 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 
 	private static final String EDIT_DIALOG_TAG = EditCategoryDialog.class.getCanonicalName();
 
-	private static final String ARG_EDITING_ID = "editing_id";
-	private static final String ARG_EDITING_CAPTION = "editing_caption";
+	private static final String STATE_EDITING_ID = "editing_id";
+	private static final String STATE_EDITING_VALUE_CAPTION = "editing_caption";
 	
 	private CursorAdapter adapter;
 	
@@ -91,10 +101,18 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 		// Reattach dialog listener
 		if (savedInstanceState != null) {
 			EditCategoryDialog dialog = (EditCategoryDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
-			if (dialog != null && savedInstanceState.containsKey(ARG_EDITING_ID)) {
-				String caption = savedInstanceState.getString(ARG_EDITING_CAPTION);
-				if (caption == null) caption = "";
-				dialog.setDialogListener(new EditDialogListener(savedInstanceState.getLong(ARG_EDITING_ID), caption));
+			if (dialog != null) {
+				EditCategoryDialogListener listener;
+				if (savedInstanceState.containsKey(STATE_EDITING_ID)) {
+					// Create listener for modifying an existing rule
+					String caption = savedInstanceState.getString(STATE_EDITING_VALUE_CAPTION);
+					if (caption == null) caption = "";
+					listener = new ModifyCategoryDialogListener(savedInstanceState.getLong(STATE_EDITING_ID), caption);
+				} else {
+					// Create listener for a new rule
+					listener = new AddCategoryDialogListener();
+				}
+				dialog.setDialogListener(listener);
 			}
 		}
 	}
@@ -102,12 +120,15 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 	@Override
 	public void onSaveInstanceState(Bundle state) {
 		super.onSaveInstanceState(state);
-		// If currently editing, store edited id and old caption
+		// If currently editing an existsting category, store edited id and old caption
 		EditCategoryDialog dialog = (EditCategoryDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
 		if (dialog != null) {
-			EditDialogListener listener = (EditDialogListener) dialog.getDialogListener();
-			state.putLong(ARG_EDITING_ID, listener.id);
-			state.putString(ARG_EDITING_CAPTION, listener.caption);
+			EditCategoryDialogListener listener = (EditCategoryDialogListener) dialog.getDialogListener();
+			// If modifying existing category, save parameters necessary to recreate
+			if (listener instanceof ModifyCategoryDialogListener) {
+				state.putLong(STATE_EDITING_ID, ((ModifyCategoryDialogListener) listener).id);
+				state.putString(STATE_EDITING_VALUE_CAPTION, ((ModifyCategoryDialogListener) listener).caption);
+			}
 		}
 	}
 	
@@ -126,68 +147,27 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 		adapter.swapCursor(null);
 	}
 		
-	/**
-	 * Edits the item at the specified position
-	 * @param position - Position in the list to edit. Must be larger than the number of header views
-	 * @throws IllegalArgumentException - If the position corresponds to one of the header views
-	 */
-	public void edit(int position) {
-		if (position < getListView().getHeaderViewsCount()) {
-			throw new IllegalArgumentException("Cannot edit position " + position + " with header views count " + getListView().getHeaderViewsCount());
-		} else {
-			position -= getListView().getHeaderViewsCount();
-		}
-		long id = adapter.getItemId(position);
-		
-		Cursor cursor = (Cursor) adapter.getItem(position);
-		String caption = cursor.getString(cursor.getColumnIndex(CategoryContract.COL_NAME_CAPTION));
-		
-		EditCategoryDialog dialog = EditCategoryDialog.newInstance(caption);
-		dialog.setDialogListener(new EditDialogListener(id, caption));
-		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
-	}
-
 	public boolean onAddClick(MenuItem menu) {
-		ContentValues values = new ContentValues();					
-		values.put(CategoryContract.COL_NAME_CAPTION, getResources().getString(R.string.new_category));
-		new AsyncQueryHandler(getContentResolver()) {						
-			@Override
-			public void onInsertComplete(int token, Object cookie, Uri uri) {
-				final long id = ContentUris.parseId(uri);
-				final ListView list = getListView();
-				
-				// Ugly hack: 
-				// Add temporary layout listener to the list view to make sure the list view and its adapter have
-				// already been updated to the insert before scrolling and editing 
-				list.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
-					@SuppressWarnings("deprecation")
-					@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-					@Override
-					public void onGlobalLayout() { 
-						if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN)
-							list.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-						else
-							list.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-						
-						int position;
-						for (position = 0; position < adapter.getCount(); position++)
-							if (adapter.getItemId(position) == id) break;
-						position += list.getHeaderViewsCount();
-						list.smoothScrollToPosition(position);
-						edit(position);
-					}
-				});
-			}
-		}.startInsert(0, null, CategoryContract.CONTENT_URI, values);
+		EditCategoryDialog dialog = EditCategoryDialog.newInstance(getResources().getString(R.string.new_category));
+		dialog.setDialogListener(new AddCategoryDialogListener());
+		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
+		
 		return true;
 	}
 	
 	public void onEditClick(View view) {
 		View item = (View) view.getParent();
 		ListView list = getListView();
-		
 		int position = list.getPositionForView(item);
-		edit(position);
+		position -= getListView().getHeaderViewsCount();
+
+		long id = adapter.getItemId(position);
+		Cursor cursor = (Cursor) adapter.getItem(position);
+		String caption = cursor.getString(cursor.getColumnIndex(CategoryContract.COL_NAME_CAPTION));
+		
+		EditCategoryDialog dialog = EditCategoryDialog.newInstance(caption);
+		dialog.setDialogListener(new ModifyCategoryDialogListener(id, caption));
+		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
 	}
 	
 	public void onDeleteClick(View view) {
