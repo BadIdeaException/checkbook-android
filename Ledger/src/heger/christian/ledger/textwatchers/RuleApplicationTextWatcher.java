@@ -4,6 +4,7 @@ import heger.christian.ledger.control.rules.RuleMatcher;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 
 public class RuleApplicationTextWatcher implements TextWatcher {
 	// Delay start of rule matching by 1500ms to avoid constantly changing categories as the user types
@@ -31,6 +32,9 @@ public class RuleApplicationTextWatcher implements TextWatcher {
 
 	@Override
 	public void afterTextChanged(Editable s) {
+		// Suppress any callbacks from rule matching runs that were already
+		// under way when this one got fired (this should happen a lot
+		// when the user is entering text)
 		handler.removeCallbacks(callback);
 		callback.phrase = s.toString();
 		handler.postDelayed(callback, START_DELAY);

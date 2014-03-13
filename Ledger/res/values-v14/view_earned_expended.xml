@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <item name="view_earning_expense" type="layout">@layout/switch_earning_expense</item>
-</resources>

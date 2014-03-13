@@ -209,12 +209,6 @@ public class OutOfKeysReaction extends Fragment {
 						// Return without sending a reply
 						return;
 					case EVENT_TOKEN_AVAILABLE: 
-						try {
-							Thread.currentThread().sleep(5000);
-						} catch (InterruptedException x1) {
-							// TODO Auto-generated catch block
-							x1.printStackTrace();
-						}
 						// Go to the server with the token and get keys
 						String token = (String) args.payload;
 						connection.bear(token);

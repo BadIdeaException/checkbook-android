@@ -2,6 +2,7 @@ package heger.christian.ledger.ui.spreadsheet;
 
 import heger.christian.ledger.R;
 import heger.christian.ledger.control.MonthsElapsedCalculator;
+import heger.christian.ledger.providers.EntryContract;
 import heger.christian.ledger.providers.LedgerContentProvider;
 import heger.christian.ledger.providers.MonthsContract;
 import heger.christian.ledger.ui.categories.CategoriesActivity;

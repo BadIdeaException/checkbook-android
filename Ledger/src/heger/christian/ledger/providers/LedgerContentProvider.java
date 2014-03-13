@@ -232,12 +232,15 @@ public class LedgerContentProvider extends ContentProvider {
 				throw new IllegalArgumentException("Could not match passed URI to a known path: " + uri);
 		}
 		// Generate a primary key for insertion
-		long key = generateKey(table);
+		boolean checkKey = false;
+		long key = 0;
 		if (!values.containsKey(BaseColumns._ID)) {
+			checkKey = true;
+			key = generateKey(table);
 			values.put(BaseColumns._ID, key);
-		}
+		} 
 		long rowID = db.insertOrThrow(table, null, values);
-		if (rowID != key) {
+		if (checkKey && rowID != key) {
 			throw new IllegalStateException("Generated key was " + key + " but database inserted as " + rowID + " in table " + table);
 		}
 		uri = ContentUris.withAppendedId(uri, rowID);

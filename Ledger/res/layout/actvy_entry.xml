@@ -21,7 +21,7 @@
             android:text="@string/txt_what"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
-       <EditText
+        <EditText
             android:id="@+id/edit_caption"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -29,28 +29,29 @@
             android:hint="@string/edit_caption_hint"
             android:imeOptions="flagNoExtractUi"
             android:maxLines="1" />
-       
-       <include
-            android:id="@+id/view_earning_expense"
+
+        <Switch
+            android:id="@+id/switch_earning_expense"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignBaseline="@+id/edit_value"
             android:layout_alignParentLeft="true"
             android:layout_below="@id/edit_caption"
-            layout="@layout/view_earning_expense" />
-       
-		<EditText
-		    android:id="@id/edit_value"
-		    android:layout_width="wrap_content"
-		    android:layout_height="wrap_content"
-		    android:layout_alignParentRight="true"
-		    android:layout_below="@id/edit_caption"
-		    android:layout_toRightOf="@id/view_earning_expense"
-		    android:ems="10"
-		    android:gravity="right"
-		    android:hint="@string/edit_value_hint"
-		    android:imeOptions="flagNoExtractUi"
-		    android:inputType="number" />
+            android:textOff="@string/expended"
+            android:textOn="@string/earned" />
+
+        <EditText
+            android:id="@id/edit_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_below="@id/edit_caption"
+            android:layout_toRightOf="@id/switch_earning_expense"
+            android:ems="10"
+            android:gravity="right"
+            android:hint="@string/edit_value_hint"
+            android:imeOptions="flagNoExtractUi"
+            android:inputType="number" />
 
         <TextView
             android:id="@+id/txt_category"
@@ -63,32 +64,33 @@
             android:layout_marginTop="25dp"
             android:text="@string/txt_category"
             android:textAppearance="?android:attr/textAppearanceSmall" />
-		
-         <ImageView
+
+        <ImageView
             android:id="@+id/btn_guess_category"
             android:layout_width="44dp"
             android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
             android:layout_below="@id/txt_category"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
-            android:onClick="onGuessCategoryClick"
-            android:focusable="true"
-            android:layout_alignParentRight="true"
             android:contentDescription="@string/guess_category"
+            android:focusable="true"
+            android:onClick="onGuessCategoryClick"
             android:src="@drawable/ic_action_guess_category" />
-    
-         <Spinner
+
+        <Spinner
             android:id="@+id/spin_category"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
             android:layout_below="@id/txt_category"
             android:layout_toLeftOf="@id/btn_guess_category"
-            android:layout_alignParentLeft="true"
             android:focusable="true"
             android:hint="@string/txt_category"
             tools:listitem="@android:layout/simple_spinner_dropdown_item" />
-        
-<!--         <TextView
+
+        <!--
+             <TextView
             android:id="@+id/txt_supercategory_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -106,7 +108,8 @@
             android:layout_toRightOf="@id/txt_supercategory_label"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:textIsSelectable="true" 
-            android:text="supercategory"/> -->
+            android:text="supercategory"/>
+        -->
 
         <TextView
             android:id="@+id/txt_when"
@@ -120,86 +123,85 @@
             android:text="@string/txt_when"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
-      	<LinearLayout 
-			style="?android:attr/buttonBarStyle"
-      	    android:id="@+id/layout_datetime_buttons"
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
+        <LinearLayout
+            android:id="@+id/layout_datetime_buttons"
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_below="@id/txt_when" >
-        	
-        	<Button
-        	    style="?android:attr/buttonBarButtonStyle"
-        	    android:id="@+id/btn_date"
-        	    android:layout_width="0dp"
-        	    android:layout_height="wrap_content"
-        	    android:layout_weight="2"
-        	    android:hint="@string/btn_date"
-        	    android:onClick="onDateClick" />
 
-        	<Button
-        	    style="?android:attr/buttonBarButtonStyle"
-        	    android:id="@+id/btn_time"
-        	    android:layout_width="0dp"
-        	    android:layout_height="wrap_content"
-        	    android:layout_weight="1"
-        	    android:hint="@string/btn_time"
-        	    android:onClick="onTimeClick" />
-      	    	    
-      	</LinearLayout>
+            <Button
+                android:id="@+id/btn_date"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:hint="@string/btn_date"
+                android:onClick="onDateClick" />
+
+            <Button
+                android:id="@+id/btn_time"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/btn_time"
+                android:onClick="onTimeClick" />
+        </LinearLayout>
 
         <EditText
             android:id="@+id/edit_details"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/layout_datetime_buttons"
             android:layout_alignParentLeft="true"
             android:layout_alignParentRight="true"
+            android:layout_below="@id/layout_datetime_buttons"
             android:layout_marginBottom="10dp"
             android:layout_marginTop="25dp"
             android:hint="@string/edit_details"
             android:maxLines="5" />
-		
+
         <TextView
             android:id="@+id/txt_save_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
             android:layout_below="@id/edit_details"
+            android:layout_marginTop="25dp"
+            android:text="@string/txt_save_hint_no_value"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textStyle="italic" />
+
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
-  		    android:layout_marginTop="25dp"
-            android:textAppearance="?android:attr/textAppearanceSmall" 
-            android:textStyle="italic"
-            android:text="@string/txt_save_hint_no_value" />
-        
-		<LinearLayout
-			style="?android:attr/buttonBarStyle"
-		    android:layout_width="fill_parent"
-		    android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-		    android:layout_below="@id/txt_save_hint"
-		    android:layout_marginBottom="10dp"
-		    android:orientation="horizontal" >
-        
-        	<Button
+            android:layout_below="@id/txt_save_hint"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal" >
+
+            <Button
                 android:id="@+id/btn_cancel"
-        	    style="?android:attr/buttonBarButtonStyle"
+                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="onCancelClick"
-            	android:text="@string/btn_cancel" />
+                android:text="@string/btn_cancel" />
 
             <Button
                 android:id="@+id/btn_save"
-        	    style="?android:attr/buttonBarButtonStyle"
+                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:enabled="false"
                 android:onClick="onSaveClick"
                 android:text="@string/btn_save" />
-	</LinearLayout>
+        </LinearLayout>
 
-</RelativeLayout>
+    </RelativeLayout>
 
 </ScrollView>
