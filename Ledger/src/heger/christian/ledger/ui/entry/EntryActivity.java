@@ -1,6 +1,9 @@
 package heger.christian.ledger.ui.entry;
 
+import heger.christian.ledger.OutOfKeysReaction;
+import heger.christian.ledger.OutOfKeysReaction.KeyRequestResultListener;
 import heger.christian.ledger.R;
+import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.adapters.FilteringAdapter;
 import heger.christian.ledger.control.MonthsElapsedCalculator;
 import heger.christian.ledger.control.rules.AsyncRuleMatcher;
@@ -36,6 +39,7 @@ import android.app.DialogFragment;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.app.TimePickerDialog;
 import android.app.TimePickerDialog.OnTimeSetListener;
+import android.content.AsyncQueryHandler;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
@@ -427,7 +431,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 	
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 	public void onSaveClick(View v) {
-		ContentValues entryValues = new ContentValues();
+		final ContentValues entryValues = new ContentValues();
 		entryValues.put(EntryContract.COL_NAME_CAPTION, editCaption.getText().toString());
 		entryValues.put(EntryContract.COL_NAME_DETAILS, editDetails.getText().toString());
 		entryValues.put(EntryContract.COL_NAME_DATETIME, new SQLDateFormat().format(calendar.getTime()));
@@ -441,29 +445,53 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		// Store the selected category:
 		entryValues.put(EntryContract.COL_NAME_CATEGORY, getSelectedCategory());
 		
-		ContentValues entryMetadataValues = new ContentValues();
+		final ContentValues entryMetadataValues = new ContentValues();
 		entryMetadataValues.put(EntryMetadataContract.COL_NAME_USER_CHOSEN_CATEGORY, userChosenCategory);
 		
+		// Prepare an intent for going back to the spreadsheet to the month we've just inserted to
+		final Intent intent = new Intent(Intent.ACTION_VIEW, 
+				ContentUris.withAppendedId(MonthsContract.CONTENT_URI, MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR))),
+				this, 
+				SpreadsheetActivity.class);
+
 		Uri uri = getIntent().getData();		
 		if (uri != null) {
 			// URI present - this is an update on an existing entry
-			getContentResolver().update(uri, entryValues, null, null);
-			Uri metadataURI = ContentUris.withAppendedId(EntryMetadataContract.CONTENT_URI, 
-					ContentUris.parseId(uri));
-			getContentResolver().update(metadataURI, entryMetadataValues, null, null);
+			new AsyncQueryHandler(getContentResolver()) {
+			}.startUpdate(0, null, uri, entryValues, null, null);
+			Uri metadataURI = ContentUris.withAppendedId(EntryMetadataContract.CONTENT_URI, ContentUris.parseId(uri));
+			new AsyncQueryHandler(getContentResolver()) {
+			}.startUpdate(0, null, metadataURI, entryMetadataValues, null, null);
+			// Now that both updates are started, go to the activity
+			startActivity(intent);
 		} else {
 			// Otherwise do an insert of a new entry
-			uri = getContentResolver().insert(EntryContract.CONTENT_URI, entryValues);
-			// Set metadata primary key to be the same as that of the just inserted entry
-			entryMetadataValues.put(EntryMetadataContract._ID, ContentUris.parseId(uri));
-			getContentResolver().insert(EntryMetadataContract.CONTENT_URI, entryMetadataValues);
+			new SturdyAsyncQueryHandler(getContentResolver()) {
+				@Override
+				public void onInsertComplete(int token, Object cookie, Uri uri) {
+					// Set metadata primary key to be the same as that of the just inserted entry
+					entryMetadataValues.put(EntryMetadataContract._ID, ContentUris.parseId(uri));
+					new AsyncQueryHandler(getContentResolver()) {
+					}.startInsert(0, null, EntryMetadataContract.CONTENT_URI, entryMetadataValues);
+					// Since entry was inserted okay, it's safe to start the activity now
+					startActivity(intent);
+				}
+				@Override
+				public void onError(int token, Object cookie, RuntimeException error) {
+					OutOfKeysReaction handler = OutOfKeysReaction.newInstance(EntryActivity.this);
+					handler.setResultListener(new KeyRequestResultListener() {
+						@Override
+						public void onSuccess() {
+							// New keys are available, try again
+							startInsert(0, null, EntryContract.CONTENT_URI, entryValues);							
+						}
+						@Override
+						public void onFailure() {}
+					});
+					handler.handleOutOfKeys();
+				}
+			}.startInsert(0, null, EntryContract.CONTENT_URI, entryValues);
 		}		
-		// Go back to the spreadsheet, selecting the month we've just inserted to
-		Intent intent = new Intent(Intent.ACTION_VIEW, 
-				ContentUris.withAppendedId(MonthsContract.CONTENT_URI,
-						MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR))),
-				this, SpreadsheetActivity.class);
-		startActivity(intent);
 	}
 	
 	public void onDateClick(View v) {

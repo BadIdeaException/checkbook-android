@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="requesting_keys_heading">Trying to process your request...</string>
+	<string name="out_of_keys_title">Addition failed</string>    
+	<string name="out_of_keys_message">Cannot handle any new items. Please sync with the server before adding anything new.</string>
+</resources>

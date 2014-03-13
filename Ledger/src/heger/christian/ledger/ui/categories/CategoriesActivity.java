@@ -22,19 +22,34 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 
 public class CategoriesActivity extends ListActivity implements LoaderCallbacks<Cursor> {
 	private class AddCategoryDialogListener implements EditCategoryDialogListener {
 		@Override
 		public void onClose(String caption) {			
-			final Uri uri = CategoryContract.CONTENT_URI;
 			final ContentValues values = new ContentValues();
 			values.put(CategoryContract.COL_NAME_CAPTION, caption);
-			new AsyncQueryHandler(getContentResolver()) {
-			}.startInsert(0, null, uri, values);
+			new SturdyAsyncQueryHandler(getContentResolver()) {
+				@Override
+				public void onError(int token, Object cookie, RuntimeException error) {
+					OutOfKeysReaction handler = OutOfKeysReaction.newInstance(CategoriesActivity.this);
+					handler.setResultListener(new KeyRequestResultListener() {
+						@Override
+						public void onSuccess() {
+							// New keys are available, try again
+							startInsert(0, null, CategoryContract.CONTENT_URI, values);							
+						}
+						@Override
+						public void onFailure() {}
+					});
+					handler.handleOutOfKeys();
+				}
+			}.startInsert(0, null, CategoryContract.CONTENT_URI, values);
 		}
 	}
 	private class ModifyCategoryDialogListener implements EditCategoryDialogListener {
@@ -84,12 +99,20 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 		} catch (ClassCastException x) {
 			Log.e(this.getClass().getCanonicalName(), "Failed to find parent view of list for setting padding", x);
 		}
+		getActionBar().setDisplayHomeAsUpEnabled(true);
 		
 		adapter = new SimpleCursorAdapter(this, 
 				R.layout.listitem_categories, 
 				null, 
 				new String[] { CategoryContract.COL_NAME_CAPTION }, 
-				new int[] { R.id.txt_caption }, 0);
+				new int[] { R.id.txt_caption }, 0) {
+			@Override
+			public long getItemId(int position) {
+				Cursor cursor = getCursor();
+				cursor.moveToPosition(position);
+				return cursor.getLong(cursor.getColumnIndex(CategoryContract._ID));
+			}
+		};
 
 		getLoaderManager().initLoader(0, null, this);
 		

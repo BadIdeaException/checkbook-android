@@ -20,7 +20,7 @@ public class ServerAuthenticatorTest extends AndroidTestCase {
 
 	@Override
 	public void setUp() {
-		authenticator = new ServerAuthenticator(getContext(), "10.0.2.2","3000");
+		authenticator = new ServerAuthenticator(getContext());
 	}
 	
 	public void testAuthenticateRefresh() {

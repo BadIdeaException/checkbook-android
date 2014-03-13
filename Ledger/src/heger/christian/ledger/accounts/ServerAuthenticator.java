@@ -1,6 +1,7 @@
 package heger.christian.ledger.accounts;
 
 import heger.christian.ledger.R;
+import heger.christian.ledger.network.Endpoints;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -17,6 +18,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -111,14 +113,9 @@ public class ServerAuthenticator {
 			}
 		}
 	}
-	private static final String DEFAULT_HOST = "10.0.2.2"; // Host machine alias from Android
-	private static final String DEFAULT_PORT = "3000";
 	
-	private final URL url;
 	private final Context context;
-	
-	private static final String ENDPOINT = "/oauth/token";
-	
+		
 	private static final String CLIENT_ID = "Ledger Android app";
 	
 	
@@ -127,21 +124,16 @@ public class ServerAuthenticator {
 	private static final String JSON_FIELD_ERR_CODE = "error";
 	private static final String JSON_FIELD_ERR_DESCRIPTION = "error_description";
 	
-	public ServerAuthenticator(Context context, String host, String port) {
+	public ServerAuthenticator(Context context) {
 		this.context = context;
-		try {
-			url = new URL("https://" + host + ":" + port + ENDPOINT);
-		} catch (MalformedURLException x) {
-			throw new IllegalArgumentException("Error while constructing URL from host " + host + " and port " + port +".", x);
-		}
 	}
 	
-	/**
-	 * Default constructor using 10.0.2.2:3000
-	 */
-	public ServerAuthenticator(Context context) {
-		this(context, DEFAULT_HOST, DEFAULT_PORT);
-	}
+//	/**
+//	 * Default constructor using 10.0.2.2:3000
+//	 */
+//	public ServerAuthenticator(Context context) {
+//		this(context, Endpoints.HOST, Endpoints.PORT);
+//	}
 	
 	/**
 	 * Prepares an HTTPS connection that incorporates the truststore under res/raw/auth_server_truststore
@@ -154,7 +146,7 @@ public class ServerAuthenticator {
 		KeyStore truststore;
 		try {
 			truststore = KeyStore.getInstance("BKS");
-			truststore.load(context.getResources().openRawResource(R.raw.auth_server_truststore), "keystore".toCharArray());
+			truststore.load(context.getResources().openRawResource(R.raw.truststore), "keystore".toCharArray());
 
 			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 			trustManagerFactory.init(truststore);
@@ -163,9 +155,13 @@ public class ServerAuthenticator {
 			SSLContext sslContext = SSLContext.getInstance("TLS");
 			sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
 
-			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+			HttpsURLConnection connection = (HttpsURLConnection) Endpoints.URL_AUTH.openConnection();
 			connection.setSSLSocketFactory(sslContext.getSocketFactory());
-
+			
+			// Disable caching
+			connection.addRequestProperty("Pragma", "no-cache");
+			connection.addRequestProperty("Cache-Control", "no-cache");
+			
 			return connection;
 		} catch (KeyStoreException x) {
 			throw new IOException("Could not open connection to server",x);
@@ -193,7 +189,6 @@ public class ServerAuthenticator {
 	 */
 	private TokenSet handleAuthentication(StrategyBodyBuilder payloadBuilder) throws IOException, AuthenticationFailedException {
 		TokenSet tokens = null;
-		// TODO Encrypt connection with TLS/SSL
 		HttpsURLConnection connection = null;
 		OutputStreamWriter writer = null;
 		BufferedReader reader = null;

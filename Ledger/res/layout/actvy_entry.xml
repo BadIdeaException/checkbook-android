@@ -40,17 +40,17 @@
             layout="@layout/view_earning_expense" />
        
 		<EditText
-            android:id="@id/edit_value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_below="@id/edit_caption"
-            android:layout_toRightOf="@id/view_earning_expense"
-            android:ems="10"
-            android:gravity="right"
-            android:inputType="number"
-            android:imeOptions="flagNoExtractUi"
-            android:hint="@string/edit_value_hint"/>
+		    android:id="@id/edit_value"
+		    android:layout_width="wrap_content"
+		    android:layout_height="wrap_content"
+		    android:layout_alignParentRight="true"
+		    android:layout_below="@id/edit_caption"
+		    android:layout_toRightOf="@id/view_earning_expense"
+		    android:ems="10"
+		    android:gravity="right"
+		    android:hint="@string/edit_value_hint"
+		    android:imeOptions="flagNoExtractUi"
+		    android:inputType="number" />
 
         <TextView
             android:id="@+id/txt_category"

@@ -18,6 +18,8 @@ public class Authenticator extends AbstractAccountAuthenticator {
 	
 	public static final String TOKEN_TYPE_ACCESS = "access";
 	public static final String TOKEN_TYPE_REFRESH = "refresh";
+
+	public static final String ACCOUNT_TYPE = "heger.christian.ledger";
 	
 	public Authenticator(Context context) {
 		super(context);
@@ -75,7 +77,7 @@ public class Authenticator extends AbstractAccountAuthenticator {
 		if (!tokens.hasAccess() && !tokens.hasRefresh()) {
 			Intent intent = new Intent(context, LoginActivity.class);
 			intent.putExtra(LoginActivity.ARG_ACCOUNT, account);
-			intent.putExtra(AccountManager.KEY_ACCOUNT_MANAGER_RESPONSE, response); // As per AbstractAccountAuthenticator doc
+			intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response); // As per AbstractAccountAuthenticator doc
 			bundle.putParcelable(AccountManager.KEY_INTENT, intent);
 		}
 		
@@ -110,35 +112,6 @@ public class Authenticator extends AbstractAccountAuthenticator {
 		}
 		
 		return bundle;
-		
-//		if (!tokens.hasAccess()) {
-//			if (tokens.hasRefresh()) {
-//				try {
-//					String oldRefresh = tokens.refresh;
-//					tokens = new ServerAuthenticator(context).authenticate(tokens.refresh);
-//					// If we've gotten here, authentication with the server was successful.
-//					// Invalidate old refresh token and store new ones
-//					manager.setAuthToken(account, TOKEN_TYPE_ACCESS, tokens.access);
-//					manager.invalidateAuthToken(account.type, oldRefresh);
-//					if (tokens.hasRefresh()) {
-//						manager.setAuthToken(account, TOKEN_TYPE_REFRESH, tokens.refresh);
-//					}
-//				} catch (AuthenticationFailedException x) {
-//					// Authentication failed - notify the user
-//					bundle.putInt(AccountManager.KEY_ERROR_CODE, AccountManager.ERROR_CODE_INVALID_RESPONSE);
-//					bundle.putString(AccountManager.KEY_ERROR_MESSAGE, x.getMessage());
-//				} catch (IOException x) {
-//					// Network exception
-//					bundle.putInt(AccountManager.KEY_ERROR_CODE, AccountManager.ERROR_CODE_NETWORK_ERROR);
-//					bundle.putString(AccountManager.KEY_ERROR_MESSAGE, x.getMessage());
-//				}
-//			} else {
-//			}
-//		} else {
-//			// There was an access token. Use it
-//			bundle.putString(AccountManager.KEY_AUTHTOKEN, tokens.access);
-//		}
-//		return bundle;
 	}
 
 	@Override

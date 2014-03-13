@@ -11,6 +11,16 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.provider.BaseColumns;
 
+/**
+ * Content provider for accessing the application logic level data (as opposed to the metadata accessible 
+ * through {@link MetaContentProvider}. 
+ * <p>
+ * When inserting, primary keys are derived from the attached <code>KeyGenerator</code>. If the generator
+ * finds itself unable to satisfy the key request, it throws an <code>OutOfKeysException</code>, which this
+ * content provider will propagate. It does not attempt to acquire a new series for the generator. 
+ * <br>Therefore, calls to {@link #insert(Uri, ContentValues)} should always be prepared to handle 
+ * this exception to prevent data loss (as the insertion will not have been made) and ungraceful failure.
+ */
 public class LedgerContentProvider extends ContentProvider {
 	public static final String AUTHORITY = "heger.christian.ledger.providers.ledgercontentprovider";
 	public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY);
@@ -177,12 +187,12 @@ public class LedgerContentProvider extends ContentProvider {
 		return MIME_TYPE + typeSuffix + "/" + MIME_SUBTYPE + subtypeSuffix;
 	}
 
-	protected long generateKey(String table) {
+	protected long generateKey(String table) throws OutOfKeysException {
 		return keyGenerator.generateKey(table);
 	}
 	
 	@Override
-	public Uri insert(Uri uri, ContentValues values) {
+	public Uri insert(Uri uri, ContentValues values) throws OutOfKeysException {
 		String table;
 		SQLiteDatabase db = dbHelper.getWritableDatabase();
 		switch (URI_MATCHER.match(uri)) {
@@ -245,7 +255,7 @@ public class LedgerContentProvider extends ContentProvider {
 		 * dbHelper.getWritableDatabase is called
 		 */
 		dbHelper = new LedgerDbHelper(getContext());
-		keyGenerator = new KeyGenerator();
+		keyGenerator = new KeyGenerator(getContext().getContentResolver());
 		return true;
 	}
 

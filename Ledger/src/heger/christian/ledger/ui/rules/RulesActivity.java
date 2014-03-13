@@ -1,6 +1,9 @@
 package heger.christian.ledger.ui.rules;
 
+import heger.christian.ledger.OutOfKeysReaction;
+import heger.christian.ledger.OutOfKeysReaction.KeyRequestResultListener;
 import heger.christian.ledger.R;
+import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.RulesContract;
 import heger.christian.ledger.ui.rules.EditRuleDialog.EditRuleDialogListener;
@@ -16,7 +19,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -29,12 +34,27 @@ import android.widget.TextView;
 public class RulesActivity extends ListActivity implements LoaderCallbacks<Cursor> {	
 	private class AddRuleDialogListener implements EditRuleDialogListener {
 		@Override
-		public void onClose(String caption, long category) {
-			Uri uri = RulesContract.CONTENT_URI;
-			ContentValues values = new ContentValues();
+		public void onClose(String caption, long category) {			
+			final Uri uri = RulesContract.CONTENT_URI;
+			final ContentValues values = new ContentValues();
 			values.put(RulesContract.COL_NAME_ANTECEDENT, caption);
 			values.put(RulesContract.COL_NAME_CONSEQUENT, category);
-			new AsyncQueryHandler(getContentResolver()) {}.startInsert(0, null, uri, values);
+			new SturdyAsyncQueryHandler(getContentResolver()) {
+				@Override
+				public void onError(int token, Object cookie, RuntimeException error) {
+					OutOfKeysReaction handler = OutOfKeysReaction.newInstance(RulesActivity.this);
+					handler.setResultListener(new KeyRequestResultListener() {
+						@Override
+						public void onSuccess() {
+							// New keys are available, try again
+							startInsert(0, null, uri, values);							
+						}
+						@Override
+						public void onFailure() {}
+					});
+					handler.handleOutOfKeys();
+				}
+			}.startInsert(0, null, uri, values);
 		}
 	}
 	private class ModifyRuleDialogListener implements EditRuleDialogListener {
@@ -117,7 +137,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}
 	}
 
-	private static final String TAG = RulesActivity.class.getSimpleName();	
+	private static final String LOG_TAG = RulesActivity.class.getSimpleName();	
 
 	private static final int LOADER_RULES = 1;
 	private static final int LOADER_CATEGORIES = 2;
@@ -142,6 +162,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
 		// Show the Up button in the action bar.
 		setupActionBar();
 
@@ -218,7 +239,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	@Override
 	protected void onSaveInstanceState(Bundle state) {
 		super.onSaveInstanceState(state);
-		// If currently editing, store edited id and old caption
+		// If currently editing an existing rule, store edited id, old caption and old category
 		EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
 		if (dialog != null) {
 			EditRuleDialogListener listener = dialog.getDialogListener();
@@ -308,7 +329,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		long id = list.getItemIdAtPosition(list.getPositionForView(item));
 		// Break off if view was off screen or couldn't be found. (This should really never happen)
 		if (id == ListView.INVALID_ROW_ID) {
-			Log.e(TAG, "Couldn't find id for item requested for deletion");
+			Log.e(LOG_TAG, "Couldn't find id for item requested for deletion");
 			return;
 		}
 		

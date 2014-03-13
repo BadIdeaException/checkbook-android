@@ -144,12 +144,12 @@ public class AuthenticatorTest extends AndroidTestCase {
 		// Set up a dummy account
 		manager = AccountManager.get(getContext());
 		
-		Account[] accounts = manager.getAccountsByType("heger.christian.ledger");
+		Account[] accounts = manager.getAccountsByType(Authenticator.ACCOUNT_TYPE);
 		for (Account acc: accounts) {
 			if (acc.name.equals(DUMMY_ACCOUNT_NAME))
 				throw new IllegalStateException("Could not create dummy account: An account with this name already exists (" + DUMMY_ACCOUNT_NAME + ")");
 		}
-		account = new Account(DUMMY_ACCOUNT_NAME, "heger.christian.ledger");
+		account = new Account(DUMMY_ACCOUNT_NAME, Authenticator.ACCOUNT_TYPE);
 		manager.addAccountExplicitly(account, null, null);
 	}
 		

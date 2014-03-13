@@ -15,6 +15,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +33,8 @@ import android.widget.TextView;
  * well.
  */
 public class LoginActivity extends AccountAuthenticatorActivity {
+	private static final String LOG_TAG = LoginActivity.class.getSimpleName();
+	
 	public static final String ARG_ADD_ACCOUNT = "add_account";
 	public static final String ARG_ACCOUNT = "account";
 	public static final String ARG_ACCOUNT_TYPE = AccountManager.KEY_ACCOUNT_TYPE;
@@ -71,7 +74,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 		editPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 			@Override
 			public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-				if (id == R.id.login || id == EditorInfo.IME_NULL) {
+				if (id == R.id.ime_enter || id == EditorInfo.IME_NULL) {
 					attemptLogin();
 					return true;
 				}
@@ -216,15 +219,20 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 		// otherwise the login would have been unsuccessful
 		if (tokens.hasAccess())
 			manager.setAuthToken(account, Authenticator.TOKEN_TYPE_ACCESS, tokens.access);
+		// Store refresh token if one was provided.
 		if (tokens.hasRefresh())
 			manager.setAuthToken(account, Authenticator.TOKEN_TYPE_REFRESH, tokens.refresh);
 
-    	Bundle result = new Bundle();
+    	final Intent intent = new Intent();
     	if (tokens.hasAccess()) {
-    		result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
+    		intent.putExtra(AccountManager.KEY_ACCOUNT_NAME, account.name);
+    		intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type);
+    		intent.putExtra(AccountManager.KEY_AUTHTOKEN, tokens.access);
+//    		intent.putExtra(AccountManager.KEY_BOOLEAN_RESULT, true);
     	}
-    	setAccountAuthenticatorResult(result);
-    	setResult(Activity.RESULT_OK);
+
+    	setAccountAuthenticatorResult(intent.getExtras());
+    	setResult(Activity.RESULT_OK, intent);
     	finish();
     }
 
@@ -253,7 +261,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 		protected void onPostExecute(final Object result) {
 			authTask = null;
 			showProgress(false);
-
+			
 			if (result instanceof TokenSet) {
 				finishLogin((TokenSet) result);
 			} else if (result instanceof Exception) {
@@ -267,7 +275,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 				} else if (result instanceof IOException) {
 					String message = getResources().getString(R.string.err_network_error);
 					// Log message as error
-					Log.e(LoginActivity.class.getSimpleName(), ((Exception) result).getLocalizedMessage());
+					Log.e(LOG_TAG, ((Exception) result).getLocalizedMessage());
 					txtStatus.setText(message);
 					txtStatus.setVisibility(View.VISIBLE);
 //					failLogin((Exception) result);

@@ -1,0 +1,22 @@
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = DE
+ST = X
+L = X
+O = LedgerTestingSuite
+OU = Mock-server
+CN = MockServer
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+IP.1 = 10.0.2.2
+IP.2 = 127.0.0.1
+IP.3 = 192.168.0.128
+
+
