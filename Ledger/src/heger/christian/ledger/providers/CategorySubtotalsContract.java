@@ -7,7 +7,6 @@ public abstract class CategorySubtotalsContract implements BaseColumns {
 	public static final String TABLE_NAME = "categories_subtotals";
 	public static final Uri CONTENT_URI = LedgerContentProvider.CONTENT_URI.buildUpon().appendPath(TABLE_NAME).build();
 	public static final String COL_NAME_CAPTION = CategoryContract.COL_NAME_CAPTION;
-	public static final String COL_NAME_SUPERCATEGORY = CategoryContract.COL_NAME_SUPERCATEGORY;
 	public static final String COL_NAME_VALUE = "value";
 	public static final String COL_NAME_MONTH = "month";
 	

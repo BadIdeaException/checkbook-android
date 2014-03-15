@@ -58,23 +58,8 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 		protected static final String SQL_CREATE = 
 				"CREATE TABLE " + TABLE_NAME + " (" +
 				BaseColumns._ID + " INTEGER PRIMARY KEY," +
-				COL_NAME_CAPTION + " TEXT," +
-				COL_NAME_SUPERCATEGORY + " NOT NULL," +
-				"FOREIGN KEY (" + COL_NAME_SUPERCATEGORY + ") REFERENCES " + 
-					SupercategoryContract.TABLE_NAME + "(" + SupercategoryContract._ID + ") " +
-					"ON UPDATE CASCADE ON DELETE CASCADE);";
+				COL_NAME_CAPTION + " TEXT," + ");";
 
-		public static void createTable(SQLiteDatabase db) {
-			db.execSQL(SQL_CREATE);
-		}
-	}
-	
-	public static abstract class SupercategoryContract extends heger.christian.ledger.providers.SupercategoryContract {
-		protected static final String SQL_CREATE = 
-				"CREATE TABLE " + TABLE_NAME + " (" +
-				BaseColumns._ID + " INTEGER PRIMARY KEY," + 
-				COL_NAME_CAPTION + " TEXT);";
-			
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
 		}
@@ -120,7 +105,6 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 	
 	@Override
 	public void onCreate(SQLiteDatabase db) {		
-		SupercategoryContract.createTable(db);
 		CategoryContract.createTable(db);
 		EntryContract.createTable(db);
 		MonthsContract.createTable(db);

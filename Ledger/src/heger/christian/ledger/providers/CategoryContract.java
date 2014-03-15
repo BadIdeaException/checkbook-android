@@ -8,7 +8,6 @@ public abstract class CategoryContract implements BaseColumns {
 	public static final String TABLE_NAME = "categories";
 	public static final Uri CONTENT_URI = LedgerContentProvider.CONTENT_URI.buildUpon().appendPath(TABLE_NAME).build();
 	public static final String COL_NAME_CAPTION = "caption";
-	public static final String COL_NAME_SUPERCATEGORY = "supercategory";
 
 	public static final String MIME_SUBTYPE_SUFFIX = TABLE_NAME;
 	
@@ -19,8 +18,6 @@ public abstract class CategoryContract implements BaseColumns {
 			return LedgerDbHelper.CategoryContract._ID;
 		if (in.equals(COL_NAME_CAPTION))
 			return LedgerDbHelper.CategoryContract.COL_NAME_CAPTION;
-		if (in.equals(COL_NAME_SUPERCATEGORY))
-			return LedgerDbHelper.CategoryContract.COL_NAME_SUPERCATEGORY;
 		return null;
 	}
 
