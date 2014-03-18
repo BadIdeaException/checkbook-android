@@ -1,0 +1,513 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Database synchronization algorithm in Ledger</title>
+<style>
+sub {
+	font-size: 75%
+}
+
+sup {
+	font-size: 75%
+}
+
+dfn {
+	font-style: italic;
+	font-weight: bold;
+}
+.def { /* definitions */
+	background-color: #f0f0f0;
+	padding: 10px;
+	margin: 2% 8%;
+	border-style: solid;
+	border-width: medium
+}
+
+.fml { /* formulas */
+	font-style: italic;
+	white-space: nowrap
+}
+
+.large {
+	font-size: 115%
+}
+
+table {
+	border-style: solid;
+	border: 1;
+	border-width: thin;
+	margin: 2% 8%
+}
+
+td {
+	padding: 5%;
+	text-align: center
+}
+
+.caption {
+	background-color: #f0f0f0
+}
+</style>
+</head>
+<body>
+	<h1>Database synchronization algorithm in Ledger</h1>
+	<h2 id="introduction">Introduction</h2>
+	<p>
+		The application data as a whole is understood to be held in one or
+		more
+		<dfn>tables</dfn>
+		, each of which is required to be uniquely identifiable. Data in them
+		is organized
+		<dfn>columns</dfn>
+		, which must also be uniquely identifiable. Tables and their columns
+		make up the structure of the application data (mapped to a relational
+		database, this is a subset of the database schema). Thus, the number
+		and identifiers of tables as well as the numbers and identifiers of
+		columns within the tables are invariant across synchronizations.
+	</p>
+	<p>
+		Within this structure, data is held in the form of
+		<dfn>rows</dfn>
+		and
+		<dfn>values</dfn>
+		. Each table may hold one or more rows, which intersect with all of
+		that table's columns exactly once. Each of those intersections is
+		occupied by at most one value. For ease of reference, a row is often
+		also understood to refer to the whole of its values. Rows must also be
+		uniquely identifiable. Their number is not invariant across
+		synchronizations, but their identifier must be.
+	</p>
+	<table>
+	<tr><td>table</td></tr>
+	<tr><td>
+	<table>
+	<tr><td></td><td>column</td><td>column</td></tr>
+	<tr><td>row</td><td>value</td><td>value</td></tr>
+	<tr><td>row</td><td>value</td><td>value</td></tr>
+	</table></td></tr>
+	</table>
+	<p>The following terminology is used within this document:</p>
+	<div class="def">
+		Let
+		<ul>
+			<li><span class="fml">row(v)</span> denote the unique identifier
+				of the row within the database table holding a value <span
+				class="fml">v</span>.</li>
+			<li><span class="fml">column(v)</span> denote the column within
+				the database table holding a value <span class="fml">v</span>.</li>
+			<li><span class="fml">table(r)</span> denote the database table
+				holding a row <span class="fml">r</span>. Where contextually
+				appropriate, it will be understood to denote the database table of
+				the row holding a value <span class="fml">v</span>, that is <span
+				class="fml">table(v) = table(row(v))</span>.</li>
+		</ul>
+	</div>
+	<p>
+		Data within the application is changed through
+		<dfn>operations</dfn>, of which there are exactly three types:</p>
+	<ol>
+		<li>The <dfn>creation</dfn> of new rows within a table,
+		</li>
+		<li>the <dfn>updating</dfn> of a single value within a row, and
+		</li>
+		<li>the <dfn>deletion</dfn> of a row.
+		</li>
+	</ol>
+	<h2 id="journaling_of_operations">Journaling of operations</h2>
+	<p>
+		Clients are required to keep a
+		<dfn>journal</dfn>
+		detailing all operations performed on their data, such that, for any
+		operation performed on the database, a corresponding entry in the
+		journal can be found. This must include:</p>
+	<ul>
+		<li>A <dfn>sequence number</dfn> that is unique to the operation.
+		</li>
+		<li>An identifier of the table the operation was performed on.
+			This could be the table name.</li>
+		<li>An identifier of the row within the table that the operation
+			was performed on, this could be its primary key.</li>
+		<li>The type of operation that was performed. Possible values are
+			<dfn>create</dfn>, <dfn>update</dfn> and <dfn>delete</dfn>
+		<li>If the type of operation is <em>update</em>, an identifier of
+			the table column that was updated. The new value need not be
+			included.
+		</li>
+	</ul>
+	<p>Clients must also keep a record of the next sequence number to
+		synchronize. This number is called the <dfn>sequence anchor</dfn>.</p>
+	<p>The following terminology will be used within this document:</p>
+	<div class="def">
+		<ul>
+			<li>For any operation <span class="fml">o</span>, let <span
+				class="fml">sqn(o)</span> denote the sequence number of o.
+			</li>
+			<li>For any operation <span class="fml">o</span>, let <span
+				class="fml">[o]</span> denote the data row or data value changed by
+				<span class="fml">o</span>, whichever is applicable.
+			</li>
+		</ul>
+	</div>
+	<p>
+		Sequence numbers must be ordered within the same journal such that for any operations <span
+			class="fml">o</span> and <span class="fml">o'</span>, if <span
+			class="fml">o</span> occurred before <span class="fml">o'</span> in
+		time, then <span class="fml">sqn(o) &lt; sqn(o')</span>.
+	</p>
+	<h2 id="revision_awareness">Revision awareness</h2>
+	<p>
+		Clients are required to keep a
+		<dfn>revision table</dfn>
+		holding
+		<dfn>revision numbers</dfn>
+		for all values in the database. For a revision row <span
+			class="fml">r</span> in the revision table holding the revision
+		number for a data value <span class="fml">d</span>, <span class="fml">r</span>
+		must include:</p>
+	<ul>
+		<li>An identifier of the table the <span class="fml">d</span>
+			resides in. This could be the table name.
+		<li>An identifier of the row holding <span class="fml">d</span>
+			within that table. This could be <span class="fml">d</span>'s primary
+			key.
+		</li>
+		<li>An identifier of the column holding <span class="fml">d</span>
+			within that table. This could be the column name.
+		<li>The revision number of <span class="fml">d</span>.
+		</li>
+	</ul>
+	<p>The following terminology applies within this document:</p>
+	<div class="def">
+		<ul>
+			<li>A (data) value <span class="fml">d</span> is said to be <dfn>in
+					revision n</dfn>, from now on written as <span class="fml">r(d) =
+					n</span>, when its corresponding row in the revision table has <span
+				class="fml">n</span> as the value of its revision number column.
+			</li>
+			<li>A (data) row <span class="fml">D</span> is said to be <dfn>in
+					revision n</dfn>, written as <span class="fml">r(D) = n</span>, when <span
+				class="fml">r(d<sub>i</sub>) = n
+			</span> for all values <span class="fml">d<sub>i</sub></span> in <span
+				class="fml">D</span>, that is, when all the values in <span
+				class="fml">D</span> are in revision <span class="fml">n</span>.
+			</li>
+		</ul>
+	</div>
+	<p>Newly created rows will be in revision 0. Any time operations on
+		a row are successfully synchronized with the server, its revision
+		number will be incremented. This is a responsibility of the server. (See subsection 
+		<a href="#server_side_processing">server side processing</a>.)</p>
+	<h2 id="synchronization">Synchronization</h2>
+	<h3 id="client_side_preparations">Client side preparations</h3>
+	<p>
+		During synchronization, the synchronizing client will first determine
+		the current sequence anchor <span class="fml">N</span>, 
+		which it sends to the server. It then assembles from its
+		journal <span class="fml">J</span>:
+	<ul>
+		<li>The set <span class="fml"><span class="large">C</span></span> of newly
+			created rows, where <span class="fml"><span class="large">C</span> = <span class="large">{
+				(</span>table([o]), [o]<span class="large">) |</span> o &isin; J with sqn(o) &geq; N <span class="large">}</span></span>.
+			<br> This set consists of records holding the the table inserted into and the complete
+			content of the inserted row. Note that the revision number is
+			implicitly 0.
+		</li>
+		<li>The set <span class="fml"><span class="large">U</span></span> of updated
+			values, where <span class="fml"><span class="large">U</span> = <span class="large">{
+				(</span>table([o]), column([o]), [o], r([o])<span class="large">) |</span> o &isin; J
+				with sqn(o) &geq; N <span class="large">}</span></span>. <br> This set consists of
+			records holding the
+			table and column of the updated value, the new value and the revision
+			number of the value.
+		</li>
+		<li>The set <span class="fml"><span class="large">D</span></span> of deleted
+			rows, where <span class="fml"><span class="large">D</span> = <span class="large">{
+				(</span>table([o]), row([o]), r<sub>max</sub>([o])<span class="large">) |</span> o
+				&isin; J with sqn(o) &geq; N <span class="large">}</span></span> <br> and <span
+			class="fml">r<sub>max</sub>(X) = max(x<sub>i</sub>)
+		</span> for all values <span class="fml">x<sub>i</sub></span> held by a row <span
+			class="fml">X</span>, that is, <span class="fml">r<sub>max</sub>(X)
+		</span> is the highest revision number for any of the values in <span
+			class="fml">X</span>. <br> This set consists of records holding
+			the table and unique row
+			identifier of the deleted row, and the highest revision number of any
+			value in the deleted row.
+	</ul>
+	It then transmits these to the server.
+	</p>
+	<h3 id="server_side_preparations">Server side preparations</h3>
+	The server, using the sequence anchor
+	<span class="fml">N</span> it received from the
+	synchronizing client, assembles its own sets of created, updated and
+	deleted rows
+	<span class="fml"><span class="large">C</span><sub>S</sub></span>,
+	<span class="fml"><span class="large">U</span><sub>S</sub></span> and
+	<span class="fml"><span class="large">D</span><sub>S</sub></span> analogously to
+	the definitions above, but using its own journal
+	<span class="fml">J<sub>S</sub></span>.
+	</p>
+	<h3 id="server_side_processing">Server side processing</h3>
+	<p>
+		The server, upon receipt of <span class="fml"><span class="large">C</span></span>,
+		<span class="fml"><span class="large">U</span></span> and <span class="fml"><span class="large">D</span></span>,
+		now performs the following:
+	<ul>
+		<li>For any <span class="fml">(table([o]), [o]) &isin; <span class="large">C</span></span>,
+			it carries out <span class="fml">o</span> (that is, inserts <span
+			class="fml">[o]</span> into its own database), notes the execution of
+			<span class="fml">o</span> in <span class="fml">J<sub>S</sub></span>
+			and inserts a revision value of 1 for <span class="fml">[o]</span>
+			into its own revision table. Note that a conflict can never occur.
+		</li>
+		<li>For any <span class="fml">(table([o]), column([o]),
+				[o], r([o]))</span> where <span class="fml">o</span> is not in conflict
+			with <span class="fml">J<sub>S</sub></span>, it carries out <span
+			class="fml">o</span> (that is, it updates the value at <span
+			class="fml">table([o]), row([o])</span> in its own database), notes
+			the execution of <span class="fml">o</span> in <span class="fml">J<sub>S</sub></span>
+			and increments the revision number of <span class="fml">[o]</span> in
+			its revision table.
+		</li>
+		<li>For any <span class="fml">(table([o], row([o])) &isin;
+				<span class="large">D</span>
+		</span> where <span class="fml">o</span> is not in conflict with <span
+			class="fml">J<sub>S</sub></span>, it carries out <span class="fml">o</span>
+			(that is, it deletes <span class="fml">[o]</span> from its own
+			database), notes the execution of <span class="fml">o</span> in <span
+			class="fml">J<sub>S</sub></span> and increments the revision number
+			of <span class="fml">[o]</span> in its revision table.
+		</li>
+	</ul>
+	<p>
+		A definition of conflicting operations and a description of resolution of operations 
+		in conflict is given in the section <a
+			href="#conflict_resolution">conflict resolution</a>. Note that for
+		any operation <span class="fml">o</span> in conflict with <span
+			class="fml">J<sub>S</sub></span>, there will by definition be a tuple
+		for an operation <span class="fml">o'</span> in <span class="fml"><span class="large">C<sub>S</sub></span>
+			&cup; <span class="large">U<sub>S</sub></span> &cup; <span class="large">D<sub>S</sub></span></span>.
+	</p>
+	<p>
+		It then sends <span class="fml"><span class="large">C</span><sub>S</sub></span>, <span
+			class="fml"><span class="large">U</span><sub>S</sub></span> and <span class="fml"><span class="large">D</span><sub>S</sub></span>
+		to the client along with the new sequence anchor <span
+			class="fml">N'</span>, where <span class="fml">N'
+			= max(o' &isin; J<sub>S</sub>')
+		</span> with <span class="fml">J<sub>S</sub>'
+		</span> being the server-side journal after adding all the operations from <span
+			class="fml"><span class="large">C</span></span>, <span class="fml"><span class="large">U</span></span>
+		and <span class="fml"><span class="large">D</span></span>, in other words, the
+		next available sequence number the client can use to log any future
+		operations after this synchronization (because this will also be the
+		first operation to sync on the next synchronization).
+	</p>
+	<h3 id="client_side_processing">Client side processing</h3>
+	<p>
+		The client, upon receipt of
+		<span class="fml"><span class="large">C</span><sub>S</sub></span>
+		,
+		<span class="fml"> <span class="large">U</span><sub>S</sub></span>
+		and
+		<span class="fml"> <span class="large">D</span><sub>S</sub></span>
+		carries out steps analogous to those performed by the server. However,
+		the following differences apply:
+	<ol>
+		<li>It performs <em>all</em> operations it receives regardless of
+			whether they are in conflict with its journal <span class="fml">J</span> or not.
+			Therefore it does not need to perform conflict checking.
+		</li>
+		<li>Revision numbers are not incremented as they are server-side,
+			but instead set to the values transmitted by the server.</li>
+		<li>Even though it may write the execution of the received
+			operations to <span class="fml">J</span>, it is not required to do so. If it does,
+			it must make sure to not exceed the new sequence anchor <span class="fml">N'</span>.
+		</li>
+	</ol>
+	<p>Having done so, it increments the revision number for any value
+	<span class="fml">[o]</span>
+	from
+	<span class="fml"> <span class="large">C</span> &cup; <span class="large">U</span> &cup; <span class="large">D</span></span>
+	for which there is not a conflicting operation in
+	<span class="fml"><span class="large">C<sub>S</sub></span> &cup; <span class="large">U<sub>S</sub></span>
+		&cup; <span class="large">D<sub>S</sub></span></span>. Informally, this might be
+	described as follows: For any of its "own" operations, it will
+	increment the revision number, unless they were overruled by a
+	server-sent operation, in which case it will set the revision number to
+	that indicated by the server (as indeed with all server-sent
+	operations). Finally, it updates the sequence anchor to be the value
+	<span class="fml">N'</span>	received from the server.
+	</p>
+	<h2 id="conflict_resolution">Conflict resolution</h2>
+	Conflicts arise from operations on the same values (or rows) being made
+	indepently from each other on the server and client. The following
+	types are possible (where "remote" denotes operations on the server and
+	"local" operations on the client):
+	<table>
+		<tr class="caption">
+			<td />
+			<td>Remote creation</td>
+			<td>Remote update</td>
+			<td>Remote deletion</td>
+		</tr>
+		<tr>
+			<td class="caption">Local creation</td>
+			<td>Cannot happen</td>
+			<td>Cannot happen</td>
+			<td>Cannot happen</td>
+		</tr>
+		<tr>
+			<td class="caption">Local update</td>
+			<td>Cannot happen</td>
+			<td>Conflict possible</td>
+			<td>Conflict possible</td>
+		</tr>
+		<tr>
+			<td class="caption">Local deletion</td>
+			<td>Cannot happen</td>
+			<td>Conflict possible</td>
+			<td>Can happen, but won't conflict</td>
+		</tr>
+	</table>
+	Two problematic scenarios can be identified: update-update conflicts,
+	where a value was changed independently on the client and server, and
+	delete-update conflicts, where a value was updated by one side and
+	deleted by the other. Formally,
+	<div class="def">
+		<ul>
+			<li><strong>Update-update conflict: </strong>An update operation
+				<span class="fml">o</span> is <dfn>in conflict</dfn> with an update operation <span class="fml">o'</span>
+				if <span class="fml">table([o]) = table([o'])</span> and <span
+				class="fml">column([o]) = column([o'])</span> and <span class="fml">row([o])
+					= row([o'])</span> and <span class="fml">r([o] &lt; r([o']))</span> and <span
+				class="fml">sqn(o') &geq; N</span>.</li>
+			<li><strong>Delete-update conflict: </strong>A delete operation
+				<span class="fml">o</span> is <dfn>in conflict</dfn> with an update operation <span class="fml">o'</span>
+				if <span class="fml">table(o) = table(o')</span> and <span class="fml">row(o) = row(o')</span>
+				and <span class="fml">r([o]) &lt; max(r[o']<sub>i</sub>)</span> for any value <span class="fml">[o']<sub>i</sub></span>
+				in <span class="fml">[o']</span> and <span class="fml">sqn(o') &geq; N</span>.</li>
+			<li>An operation <span class="fml">o &notin; J<sub>S</sub></span>
+				is <dfn>in conflict</dfn> with <span class="fml">J<sub>S</sub></span>
+				if there is an entry in for an operation <span class="fml">o'</span>
+				in <span class="fml">J<sub>S</sub></span> that <span class="fml">o</span>
+				is in conflict with.
+			</li>
+		</ul>
+	</div>
+	</p>
+	<p>
+		The server deals with both conflict types identically: by rejecting
+		the operation offered by the client. Thus, for any operation
+		<span class="fml">o</span>
+		that is in conflict with the server's journal
+		<span class="fml">J<sub>S</sub></span>
+		, the server will not carry out any of the steps described in
+		subsection <a href="#server_side_processing">server side
+			processing</a>, effectively discarding
+		<span class="fml">o</span>
+		and superseding it with the conflicting operation from
+		<span class="fml">J<sub>S</sub></span>
+		.
+	</p>
+	<p>
+		Note that client-sent revision numbers can never be greater than
+		server-side ones&mdash;they can only be less (if the client was
+		working on outdated data) or equal. This is because they are only set
+		on synchronization, where both sides will increment by one, and
+		because for any operations rejected by the server because of
+		conflicts, the conflicting operation will be included in <span
+			class="fml"><span class="large">C<sub>S</sub></span> &cup; <span class="large">U<sub>S</sub></span>
+			&cup; <span class="large">D<sub>S</sub></span></span>.
+	</p>
+	<h2 id="preventing_partial_synchronizations">Preventing partial
+		synchronizations</h2>
+	Interruption in mid-process is an inherent risk of synchronization over
+	an unreliable medium. For battery-operated clients, there is the
+	additional risk of the client running out of power during
+	synchronization. Precautions must be taken to ensure that an
+	interrupted synchronization can never lead to inconsistent states on
+	either side.
+	<h3>Interruption during client side preparations</h3>
+	<p>During this phase, no changes are made to either side's data store. This
+	is therefore a non-issue; it will simply keep the synchronization from
+	being carried out at this time.</p>
+	<h3>Message loss after client side preparations</h3>
+	<p>This will have the same effects as interruption during client side preparations.</p>
+	<h3>Interruption during server side preparations</h3>
+	<p>For analogous reasons as those given for interruption during client
+	side preparations, this is also a non-issue, with the same effects as
+	those stated there.</p>
+	<h3>Interruption during server side processing</h3>
+	<p>Interruption during server side processing is safe provided it does not happen
+	between execution of an operation <span class="fml">o</span> and modification of the revision number
+	pertaining to <span class="fml">[o]</span>. </p>
+	<p>Interruption at any other point will simply result in not all client data being
+	incorporated into the server side data store. Since a new sequence anchor 
+	has not been transmitted to the client, on the next synchronization, 
+	it will re-transmit all operations (formally: a superset of 
+	<span class="fml"> <span class="large">C</span> &cup; <span class="large">U</span> &cup; <span class="large">D</span></span>), 
+	the already synchronized operations of which the server will discard because of outdated revision numbers.</p>
+	<p>Repercussions from interruption during this phase can be alleviated by wrapping 
+	its operations in a single transaction, which will then be carried out atomically.
+	Nevertheless, the database should be backed up regularly so as to guard against 
+	catastrophic failures such as power loss during transaction commit.</p>     
+	<h3>Message loss after server side processing</h3>
+	<p>This is safe, as server data is guaranteed to be in a consistent state at this point
+	(all operations and revision number adjustments have been made). Losing the message
+	containing <span class="fml"> <span class="large">C<sub>S</sub></span></span>, 
+	<span class="fml"><span class="large">U<sub>S</sub></span></span>, <span class="fml"><span class="large">D<sub>S</sub></span></span> and
+	<span class="fml">N'</span> will simply result in the client pushing all of its already
+	processed operations again on the next synchronization, which the server will
+	discard due to outdated revision numbers.
+	<h3>Interruption during client side processing</h3>
+	<p>As with server side processing, this can result in an inconsistent state if interruption
+	occurs between execution of an operation and the associated update of the revision 
+	number of the row or value in question. Similarly, interruption at any other time is
+	safe in terms of data consistency. 
+	There is however a scenario that can lead to user data being lost if an interruption
+	occurs before the sequence anchor has been updated on the client. 
+	This happens when operations sent by the server have been incorporated into the client
+	data store, but because the sequence anchor has not been updated
+	these operations will be downloaded again on the next synchronization. Because server-
+	sent operations are incorporated unquestioned, changes made by the user to the 
+	downloaded data will be overwritten on the next synchronization. While these user 
+	changes will be pushed to the server on that next synchronization, because of the low
+	sequence anchor <span class="fml">N</span>, they will conflict with the server-side
+	operation causing the download in the first place, and consequently be discarded 
+	by the server.</p>
+	<p>As with server side processing, the implications of this can be managed by wrapping the 
+	operations in a transaction, performing regular backups, and denying synchronization
+	when the device is already low on power.</p> 
+	<h2 id="optimizations">Optimizations</h2>
+	<h3 id="client_side_optimizations">Client side optimizations</h3>
+	<p>To reduce journal size as well as the number of journaled operations to send to the server, 
+	a number of optimizations can be made to client side journaling. All operations in the 
+	following are implicitly understood to have sequence numbers <span class="fml">&geq; N</span>.
+	<ol>
+	<li>For a create operation <span class="fml">o</span> followed by an update operation <span class="fml">o'</span> with
+	<span class="fml">table([o]) = table([o']) &and; row([o]) = row([o'])</span>, <span class="fml">o'</span> need not be
+	written to the journal.</li> 
+	<li>For an update operation <span class="fml">o</span> followed by an update operation <span class="fml">o'</span> with
+	<span class="fml">table([o]) = table([o']) &and; row([o]) = row([o']) &and; column([o]) = column([o'])</span>,
+	it is enough if one of those operations is written to the journal (preferably the first).</li>
+	<li>For any create or update operation <span class="fml">o</span> followed by a delete operation <span class="fml">o'</span> with
+	<span class="fml">table([o]) = table([o']) &and; row([o]) = row([o'])</span>, <span class="fml">o</span> can be removed from 
+	the journal. If <span class="fml">o</span> was a create operation, then <span class="fml">o'</span> is to be omitted from the journal.
+	</ol></p>
+	<h3 id="server_side_optimizations">Server side optimizations</h3>
+	<p>In theory, the server side journal lends itself to the same optimizations as those outlined in the previous
+	subsection, however, this only applies in those stretches of its journal that have never been
+	synchronized by <strong>any</strong> client. 
+	Formally, this means that the operations <span class="fml">o</span> and <span class="fml">o'</span>
+	as outlined above are required to also satisfy the constraint that there is no client with 
+	a sequence anchor <span class="fml">N<sub>C</sub></span> for which
+	<span class="fml">sqn(o) &lt; N<sub>C</sub> &and; sqn(o') &geq; N<sub>C</sub></span>.</p>
+	<p>To further optimize the server side, it is also possible to leave out those operations 
+	satisfying the constraints outlined in the previous subsection while assembling the server side
+	sets <span class="fml"><span class="large">C<sub>S</sub></span></span>, <span class="fml"><span class="large">U<sub>S</sub></span></span> and
+	<span class="fml"><span class="large">D<sub>S</sub></span></span>. This puts more strain on the server during
+	the server side preparation phase, but does reduce the size of the message sent to the client.
+	<h2>Limitations</h2>
+	This algorithm does not lend itself to concurrent synchronizations by multiple clients.
+</body>
+</html>

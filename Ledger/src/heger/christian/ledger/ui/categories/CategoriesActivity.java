@@ -5,6 +5,7 @@ import heger.christian.ledger.OutOfKeysReaction.KeyRequestResultListener;
 import heger.christian.ledger.R;
 import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.providers.CategoryContract;
+import heger.christian.ledger.providers.OutOfKeysException;
 import heger.christian.ledger.ui.categories.EditCategoryDialog.EditCategoryDialogListener;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -22,11 +23,9 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
-import android.widget.TextView;
 
 public class CategoriesActivity extends ListActivity implements LoaderCallbacks<Cursor> {
 	private class AddCategoryDialogListener implements EditCategoryDialogListener {
@@ -37,17 +36,19 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 			new SturdyAsyncQueryHandler(getContentResolver()) {
 				@Override
 				public void onError(int token, Object cookie, RuntimeException error) {
-					OutOfKeysReaction handler = OutOfKeysReaction.newInstance(CategoriesActivity.this);
-					handler.setResultListener(new KeyRequestResultListener() {
-						@Override
-						public void onSuccess() {
-							// New keys are available, try again
-							startInsert(0, null, CategoryContract.CONTENT_URI, values);							
-						}
-						@Override
-						public void onFailure() {}
-					});
-					handler.handleOutOfKeys();
+					if (error instanceof OutOfKeysException) {
+						OutOfKeysReaction handler = OutOfKeysReaction.newInstance(CategoriesActivity.this);
+						handler.setResultListener(new KeyRequestResultListener() {
+							@Override
+							public void onSuccess() {
+								// New keys are available, try again
+								startInsert(0, null, CategoryContract.CONTENT_URI, values);							
+							}
+							@Override
+							public void onFailure() {}
+						});
+						handler.handleOutOfKeys();
+					}
 				}
 			}.startInsert(0, null, CategoryContract.CONTENT_URI, values);
 		}

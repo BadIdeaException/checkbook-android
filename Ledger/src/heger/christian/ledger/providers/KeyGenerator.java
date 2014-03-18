@@ -4,7 +4,6 @@ import heger.christian.ledger.providers.MetaContentProvider.KeyGenerationContrac
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.media.MediaCodecInfo.CodecCapabilities;
 import android.os.Handler;
 
 /**
@@ -12,6 +11,10 @@ import android.os.Handler;
  * 
  */
 public class KeyGenerator {
+	/**
+	 * Content observer that marks the key generator as in need of new initialization when a change of the 
+	 * key generation table is detected.
+	 */
 	protected class ContentObserver extends android.database.ContentObserver {
 		boolean active = true;
 		public ContentObserver(Handler handler) {
@@ -35,6 +38,8 @@ public class KeyGenerator {
 	
 	public KeyGenerator(ContentResolver resolver) {
 		this.resolver = resolver;
+		// Register self as an observer so we know when a new series
+		// has been written to storage
 		resolver.registerContentObserver(KeyGenerationContract.CONTENT_URI, true, observer);
 	}
 	

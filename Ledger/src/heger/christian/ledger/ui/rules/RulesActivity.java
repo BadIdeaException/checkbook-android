@@ -5,6 +5,7 @@ import heger.christian.ledger.OutOfKeysReaction.KeyRequestResultListener;
 import heger.christian.ledger.R;
 import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.providers.CategoryContract;
+import heger.christian.ledger.providers.OutOfKeysException;
 import heger.christian.ledger.providers.RulesContract;
 import heger.christian.ledger.ui.rules.EditRuleDialog.EditRuleDialogListener;
 import android.app.DialogFragment;
@@ -19,9 +20,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,17 +41,19 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			new SturdyAsyncQueryHandler(getContentResolver()) {
 				@Override
 				public void onError(int token, Object cookie, RuntimeException error) {
-					OutOfKeysReaction handler = OutOfKeysReaction.newInstance(RulesActivity.this);
-					handler.setResultListener(new KeyRequestResultListener() {
-						@Override
-						public void onSuccess() {
-							// New keys are available, try again
-							startInsert(0, null, uri, values);							
-						}
-						@Override
-						public void onFailure() {}
-					});
-					handler.handleOutOfKeys();
+					if (error instanceof OutOfKeysException) {
+						OutOfKeysReaction handler = OutOfKeysReaction.newInstance(RulesActivity.this);
+						handler.setResultListener(new KeyRequestResultListener() {
+							@Override
+							public void onSuccess() {
+								// New keys are available, try again
+								startInsert(0, null, uri, values);							
+							}
+							@Override
+							public void onFailure() {}
+						});
+						handler.handleOutOfKeys();
+					}
 				}
 			}.startInsert(0, null, uri, values);
 		}

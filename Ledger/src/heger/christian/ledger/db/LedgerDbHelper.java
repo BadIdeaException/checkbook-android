@@ -5,117 +5,199 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.BaseColumns;
 
+/**
+ * <code>SQLiteOpenHelper</code> for the Ledger database. It uses the singleton pattern to support
+ * multiple content providers accessing the same database.
+ */
 public class LedgerDbHelper extends SQLiteOpenHelper {
 	public static final String DEFAULT_PRAGMA_FOREIGN_KEYS = "ON";
-	
+
 	public static abstract class MonthsContract extends heger.christian.ledger.providers.MonthsContract {
-		protected static final String SQL_CREATE = 
-				"CREATE VIEW " + TABLE_NAME + " AS " +
-				"SELECT strftime('%m'," + EntryContract.COL_NAME_DATETIME + 
-						")+12*(strftime('%Y'," + EntryContract.COL_NAME_DATETIME + ")-1970) AS " + _ID
-						+ ",  sum(value) AS " + COL_NAME_VALUE
-						+ " FROM " + EntryContract.TABLE_NAME
-						+ " GROUP BY " + _ID;
-		
-		public static void createTable(SQLiteDatabase db) {
-			db.execSQL(SQL_CREATE);
-		}	
-	}
-	
-	public static abstract class EntryContract extends heger.christian.ledger.providers.EntryContract {
-		protected static final String SQL_CREATE = 
-				"CREATE TABLE " + TABLE_NAME + " (" +
-				BaseColumns._ID + " INTEGER PRIMARY KEY," +
-				COL_NAME_DATETIME + " DATETIME NOT NULL," + 
-				COL_NAME_CAPTION + " TEXT," +
-				COL_NAME_VALUE + " INTEGER NOT NULL," + 
-				COL_NAME_DETAILS + " TEXT," +
-				COL_NAME_CATEGORY + " NOT NULL," +
-				"FOREIGN KEY (" + COL_NAME_CATEGORY + ") REFERENCES " + 
-					CategoryContract.TABLE_NAME + "(" + CategoryContract._ID + ") " +
-					"ON UPDATE CASCADE ON DELETE CASCADE);";
-		
-		public static void createTable(SQLiteDatabase db) {
-			db.execSQL(SQL_CREATE);
-		}
-	}
-	
-	public static abstract class EntryMetaDataContract extends heger.christian.ledger.providers.EntryMetadataContract {
-		protected static final String SQL_CREATE = 
-				"CREATE TABLE " + TABLE_NAME + "(" +
-				BaseColumns._ID + " INTEGER PRIMARY KEY," + 
-				COL_NAME_USER_CHOSEN_CATEGORY + "," + 
-				"FOREIGN KEY (" + _ID + ") REFERENCES " +
-					EntryContract.TABLE_NAME + "(" + EntryContract._ID + ") " +
-					"ON UPDATE CASCADE ON DELETE CASCADE);";
-		
-		public static void createTable(SQLiteDatabase db) {
-			db.execSQL(SQL_CREATE);
-		}
-	}
-	
-	public static abstract class CategoryContract extends heger.christian.ledger.providers.CategoryContract {
-		protected static final String SQL_CREATE = 
-				"CREATE TABLE " + TABLE_NAME + " (" +
-				BaseColumns._ID + " INTEGER PRIMARY KEY," +
-				COL_NAME_CAPTION + " TEXT," + ");";
+		protected static final String SQL_CREATE =
+				"create view " + TABLE_NAME + " as " +
+				"select strftime('%m'," + EntryContract.COL_NAME_DATETIME +
+						")+12*(strftime('%Y'," + EntryContract.COL_NAME_DATETIME + ")-1970) as " + _ID
+						+ ",  sum(value) as " + COL_NAME_VALUE
+						+ " from " + EntryContract.TABLE_NAME
+						+ " group by " + _ID;
 
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
 		}
 	}
-	
-	public static abstract class RulesContract extends heger.christian.ledger.providers.RulesContract {
-		protected static final String SQL_CREATE = 
-				"CREATE TABLE " + TABLE_NAME + " (" + 
-				BaseColumns._ID + " INTEGER PRIMARY KEY," + 
-				COL_NAME_ANTECEDENT + " TEXT," +
-				COL_NAME_CONSEQUENT + " NOT NULL," + 
-				"FOREIGN KEY (" + COL_NAME_CONSEQUENT + ") REFERENCES " + 
+
+	public static abstract class EntryContract extends heger.christian.ledger.providers.EntryContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + " (" +
+				BaseColumns._ID + " integer primary key," +
+				COL_NAME_DATETIME + " datetime not null," +
+				COL_NAME_CAPTION + " text," +
+				COL_NAME_VALUE + " integer not null," +
+				COL_NAME_DETAILS + " text," +
+				COL_NAME_CATEGORY + " not null," +
+				"foreign key (" + COL_NAME_CATEGORY + ") references " +
 					CategoryContract.TABLE_NAME + "(" + CategoryContract._ID + ") " +
-					"ON UPDATE CASCADE ON DELETE CASCADE);";
-		
+					"on update cascade on delete cascade);";
+
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
 		}
 	}
-	
-	public static abstract class KeyGenerationContract extends heger.christian.ledger.providers.MetaContentProvider.KeyGenerationContract {
-		protected static final String SQL_CREATE = 
-				"CREATE TABLE " + TABLE_NAME + " (" + 
-				COL_NAME_NEXT_KEY + " INTEGER NOT NULL, " +
-				COL_NAME_UPPER_BOUND + " INTEGER NOT NULL); " +
-				// Create trigger that will ensure not more than one row is ever present
-				"CREATE TRIGGER key_generation_insert BEFORE INSERT ON " + TABLE_NAME +
-				" FOR EACH ROW BEGIN DELETE FROM KEY_GENERATION; END; " +
-				// Insert initial values that will force acquisition of new series from server
-				"INSERT INTO KEY_GENERATION VALUES (1,0);";
-				
+
+	public static abstract class EntryMetaDataContract extends heger.christian.ledger.providers.EntryMetadataContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + "(" +
+				BaseColumns._ID + " integer primary key," +
+				COL_NAME_USER_CHOSEN_CATEGORY + "," +
+				"foreign key (" + _ID + ") references " +
+					EntryContract.TABLE_NAME + "(" + EntryContract._ID + ") " +
+					"on update cascade on delete cascade);";
+
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
+		}
+	}
+
+	public static abstract class CategoryContract extends heger.christian.ledger.providers.CategoryContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + " (" +
+				BaseColumns._ID + " integer primary key," +
+				COL_NAME_CAPTION + " text);";
+
+		public static void createTable(SQLiteDatabase db) {
+			db.execSQL(SQL_CREATE);
+		}
+	}
+
+	public static abstract class RulesContract extends heger.christian.ledger.providers.RulesContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + " (" +
+				BaseColumns._ID + " integer primary key," +
+				COL_NAME_ANTECEDENT + " text," +
+				COL_NAME_CONSEQUENT + " not null," +
+				"foreign key (" + COL_NAME_CONSEQUENT + ") references " +
+					CategoryContract.TABLE_NAME + "(" + CategoryContract._ID + ") " +
+					"on update cascade on delete cascade);";
+
+		public static void createTable(SQLiteDatabase db) {
+			db.execSQL(SQL_CREATE);
+		}
+	}
+
+	public static abstract class KeyGenerationContract extends heger.christian.ledger.providers.MetaContentProvider.KeyGenerationContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + " (" +
+				COL_NAME_NEXT_KEY + " integer not null, " +
+				COL_NAME_UPPER_BOUND + " integer not null); ";
+		protected static final String SQL_CREATE_TRIGGER =
+				// Create trigger that will ensure not more than one row is ever present
+				"create trigger " + KeyGenerationContract.TABLE_NAME + "_insert before insert on " + TABLE_NAME +
+				" for each row begin delete from " + TABLE_NAME + "; end; ";
+		protected static final String SQL_POPULATE =
+				// Insert initial values that will force acquisition of new series from server
+				"insert into " + TABLE_NAME + " values (1,0);";
+
+		public static void createTable(SQLiteDatabase db) {
+			db.execSQL(SQL_CREATE);
+			db.execSQL(SQL_CREATE_TRIGGER);
+			db.execSQL(SQL_POPULATE);
+		}
+	}
+
+	public static abstract class JournalContract extends heger.christian.ledger.providers.MetaContentProvider.JournalContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + " (" +
+				// Sequence number, must not be null and must be unique - primary key
+				COL_NAME_SEQUENCE_NUMBER + " integer primary key, " +
+				// Table name, must not be null
+				COL_NAME_TABLE + " text not null, " +
+				// Target row primary key, target row existence cannot be formulated here
+				COL_NAME_ROW + " integer not null, " +
+				// Target column, MAY BE EMPTY for creation and deletion operations
+				COL_NAME_COLUMN + " text, " +
+				// Operation type, may be one of C, U, D
+				COL_NAME_OPERATION + " char not null check (lower(" + COL_NAME_OPERATION + ") = \"c\"" +
+				"or lower(" + COL_NAME_OPERATION + ") = \"u\" or lower(" + COL_NAME_OPERATION + ") = \"d\"));";
+		protected static final String SQL_CREATE_TRIGGER =
+				// Need to check AFTER the insert - otherwise the sequence number won't be available yet
+				"create trigger ensure_valid_sequence_number after insert on " + TABLE_NAME + " " +
+				"for each row when (new." + COL_NAME_SEQUENCE_NUMBER + " < " +
+				 "(select max(" + SequenceAnchorContract.COL_NAME_SEQUENCE_ANCHOR + ") " +
+				"from " + SequenceAnchorContract.TABLE_NAME + ")) " +
+				 // Delete the illegal entry again
+				 "begin delete from " + TABLE_NAME + " where " + COL_NAME_SEQUENCE_NUMBER + "=new." + COL_NAME_SEQUENCE_NUMBER + "; " +
+				 "select raise(fail,\"sequence number too low\"); end;";
+;
+		public static void createTable(SQLiteDatabase db) {
+			db.execSQL(SQL_CREATE);
+			db.execSQL(SQL_CREATE_TRIGGER);
+		}
+	}
+
+	public static abstract class RevisionTableContract extends heger.christian.ledger.providers.MetaContentProvider.RevisionTableContract {
+		protected static final String SQL_CREATE =
+			"create table " + TABLE_NAME + " (" +
+			COL_NAME_TABLE + " text not null, " +
+			COL_NAME_ROW + " integer not null, " +
+			COL_NAME_COLUMN + " text, " +
+			COL_NAME_REVISION + " integer not null);";
+		public static void createTable(SQLiteDatabase db) {
+			db.execSQL(SQL_CREATE);
+		}
+	}
+
+	public static abstract class SequenceAnchorContract extends heger.christian.ledger.providers.MetaContentProvider.SequenceAnchorContract {
+		protected static final String SQL_CREATE =
+				"create table " + TABLE_NAME + " (" +
+				COL_NAME_SEQUENCE_ANCHOR + " integer not null);";
+		protected static final String SQL_CREATE_TRIGGER =
+				// Create trigger that will ensure not more than one row is ever present
+				"create trigger " + SequenceAnchorContract.TABLE_NAME + "_insert before insert on " + TABLE_NAME +
+				" for each row begin delete from " + TABLE_NAME + "; end; ";
+		protected static final String SQL_POPULATE =
+				// Insert initial value: First synchronization to start from sequence number 0
+				"insert into " + TABLE_NAME + " values (0);";
+
+		public static void createTable(SQLiteDatabase db) {
+			db.execSQL(SQL_CREATE);
+			db.execSQL(SQL_CREATE_TRIGGER);
+			db.execSQL(SQL_POPULATE);
 		}
 	}
 
 	public static final int DB_VERSION = 1;
 	public static final String DB_NAME = "ledger.db";
-	
-	public LedgerDbHelper(Context context) {
+
+	private static LedgerDbHelper instance = null;
+	public static LedgerDbHelper getInstance(Context context) {
+		if (instance == null) {
+			instance = new LedgerDbHelper(context.getApplicationContext());
+		}
+		return instance;
+	}
+
+	private LedgerDbHelper(Context context) {
 		super(context, DB_NAME, null, DB_VERSION);
 	}
-	
+
 	@Override
-	public void onCreate(SQLiteDatabase db) {		
+	public void onCreate(SQLiteDatabase db) {
 		CategoryContract.createTable(db);
 		EntryContract.createTable(db);
 		MonthsContract.createTable(db);
 		EntryMetaDataContract.createTable(db);
 		RulesContract.createTable(db);
+		// Metadata tables:
+		KeyGenerationContract.createTable(db);
+		SequenceAnchorContract.createTable(db);
+		JournalContract.createTable(db);
+		RevisionTableContract.createTable(db);
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 	}
-	
+
 	@Override
 	public void onOpen(SQLiteDatabase db) {
 		db.execSQL("PRAGMA foreign_keys = " + DEFAULT_PRAGMA_FOREIGN_KEYS);

@@ -14,6 +14,7 @@ import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.EntryContract;
 import heger.christian.ledger.providers.EntryMetadataContract;
 import heger.christian.ledger.providers.MonthsContract;
+import heger.christian.ledger.providers.OutOfKeysException;
 import heger.christian.ledger.textwatchers.CurrencyFormattingTextWatcher;
 import heger.christian.ledger.textwatchers.RuleApplicationTextWatcher;
 import heger.christian.ledger.ui.CurrencyValueFormatter;
@@ -452,17 +453,19 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 				}
 				@Override
 				public void onError(int token, Object cookie, RuntimeException error) {
-					OutOfKeysReaction handler = OutOfKeysReaction.newInstance(EntryActivity.this);
-					handler.setResultListener(new KeyRequestResultListener() {
-						@Override
-						public void onSuccess() {
-							// New keys are available, try again
-							startInsert(0, null, EntryContract.CONTENT_URI, entryValues);							
-						}
-						@Override
-						public void onFailure() {}
-					});
-					handler.handleOutOfKeys();
+					if (error instanceof OutOfKeysException) {
+						OutOfKeysReaction handler = OutOfKeysReaction.newInstance(EntryActivity.this);
+						handler.setResultListener(new KeyRequestResultListener() {
+							@Override
+							public void onSuccess() {
+								// New keys are available, try again
+								startInsert(0, null, EntryContract.CONTENT_URI, entryValues);							
+							}
+							@Override
+							public void onFailure() {}
+						});
+						handler.handleOutOfKeys();
+					}
 				}
 			}.startInsert(0, null, EntryContract.CONTENT_URI, entryValues);
 		}		

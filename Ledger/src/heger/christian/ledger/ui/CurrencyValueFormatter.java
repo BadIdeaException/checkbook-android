@@ -1,9 +1,7 @@
 package heger.christian.ledger.ui;
 
 import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
-import java.text.ParseException;
 
 
 public class CurrencyValueFormatter {
