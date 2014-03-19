@@ -26,7 +26,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		@Override
 		public synchronized long getSequenceNumber() {
 			return super.getSequenceNumber();
-		}	
+		}
 		@Override
 		public synchronized boolean returnSequenceNumber(long sqn) {
 			return super.returnSequenceNumber(sqn);
@@ -36,7 +36,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 	private static final String TABLE = "table";
 	private static final long ROW = 0;
 	private static final String COLUMN = "column";
-	
+
 	public JournalerTest() {
 		super(MetaContentProvider.class, MetaContentProvider.AUTHORITY);
 	}
@@ -49,27 +49,23 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 
 	@Override
 	public void tearDown() {
-		getMockContentResolver().delete(JournalContract.CONTENT_URI, null, null);
-		ContentValues values = new ContentValues();
-		values.put(SequenceAnchorContract.COL_NAME_SEQUENCE_ANCHOR, 0);
-		getMockContentResolver().insert(SequenceAnchorContract.CONTENT_URI, values);
 	}
-	
+
 	public void testGetSequenceNumberReturnSequenceNumber() {
 		String tag = "getSequenceNumber: ";
 		final long anchor = 20;
 		ContentValues values = new ContentValues();
 		values.put(SequenceAnchorContract.COL_NAME_SEQUENCE_ANCHOR, anchor);
 		getMockContentResolver().insert(SequenceAnchorContract.CONTENT_URI, values);
-		
+
 		long sqn = journaler.getSequenceNumber();
 		assertTrue(tag + "sequence number is too low for anchor " + anchor + ": " + sqn, sqn >= anchor);
-		
+
 		tag = "returnSequenceNumber: ";
 		assertTrue(tag + "sequence number " + sqn + " was not accepted", journaler.returnSequenceNumber(sqn));
 		assertEquals(tag + "subsequent call to getSequenceNumber did not give expected value",sqn, journaler.getSequenceNumber());
 	}
-	
+
 	public void testJournalCreate() throws RemoteException, OperationApplicationException {
 		String tag = "Writing create: ";
 		ArrayList<ContentProviderOperation> operations = journaler.getJournalCreateOperation(TABLE, ROW);
@@ -77,7 +73,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		assertNotNull(tag + " result array is null", results);
 		assertTrue(tag + " result array is zero-length", results.length > 0);
 		assertNotNull(tag + " result URI is null", results[0].uri);
-		
+
 		Cursor cursor = getMockContentResolver().query(results[0].uri, null, null, null, null);
 		assertNotNull(tag + " cursor is null", cursor);
 		assertTrue(tag + " cursor is empty", cursor.moveToFirst());
@@ -85,7 +81,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		assertEquals(tag + " inserted entry has wrong row", ROW, cursor.getLong(cursor.getColumnIndex(JournalContract.COL_NAME_ROW)));
 		assertEquals(tag + " inserted entry has wrong type", Journaler.OP_TYPE_CREATE, cursor.getString(cursor.getColumnIndex(JournalContract.COL_NAME_OPERATION)));
 	}
-	
+
 	private void populate() {
 		String[] ops = { Journaler.OP_TYPE_CREATE, Journaler.OP_TYPE_UPDATE, Journaler.OP_TYPE_DELETE };
 		ContentResolver resolver = getMockContentResolver();
@@ -130,7 +126,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 			resolver.insert(JournalContract.CONTENT_URI, values);
 		}
 	}
-	
+
 	private boolean verifyExistence() {
 		boolean result = true;
 		Cursor cursor;
@@ -140,19 +136,19 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Test just a regular update. Expect to see it entered in the journal with correct values, and not messing with the existing values.
 	 */
 	public void testJournalUpdate() throws RemoteException, OperationApplicationException {
-		populate();		
+		populate();
 		String tag = "Writing simple update: ";
 		ArrayList<ContentProviderOperation> operations = journaler.getJournalUpdateOperation(TABLE, ROW, COLUMN);
 		ContentProviderResult[] results = getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, operations);
 		assertNotNull(tag + " result array is null", results);
 		assertTrue(tag + " result array is zero-length", results.length > 0);
 		assertNotNull(tag + " result URI is null", results[0].uri);
-		
+
 		assertTrue(tag + " verify pre-existing values" , verifyExistence());
 		Cursor cursor = getMockContentResolver().query(results[0].uri, null, null, null, null);
 		assertNotNull(tag + " cursor is null", cursor);
@@ -162,7 +158,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		assertEquals(tag + " inserted entry has wrong column", COLUMN, cursor.getString(cursor.getColumnIndex(JournalContract.COL_NAME_COLUMN)));
 		assertEquals(tag + " inserted entry has wrong type", Journaler.OP_TYPE_UPDATE, cursor.getString(cursor.getColumnIndex(JournalContract.COL_NAME_OPERATION)));
 	}
-	
+
 	/**
 	 * Test an update where there is an existing update that could be optimized away, except the value
 	 * of the sequence anchor prevents this. Expect to see both entries there.
@@ -179,17 +175,17 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		ContentValues values = new ContentValues();
 		values.put(SequenceAnchorContract.COL_NAME_SEQUENCE_ANCHOR, anchor);
 		getMockContentResolver().insert(SequenceAnchorContract.CONTENT_URI, values);
-		results = getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, 
+		results = getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY,
 				journaler.getJournalUpdateOperation(TABLE, ROW, COLUMN));
 		Cursor cursor = getMockContentResolver().query(JournalContract.CONTENT_URI,
 				null,
-				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW + " and " + JournalContract.COL_NAME_COLUMN + "=?", 
-				new String[] { TABLE, COLUMN }, 
+				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW + " and " + JournalContract.COL_NAME_COLUMN + "=?",
+				new String[] { TABLE, COLUMN },
 				null);
 		assertTrue(tag + " verify pre-existing values",verifyExistence());
-		assertEquals(tag + " wrong number of entries", cursor.getCount(), 2);		
+		assertEquals(tag + " wrong number of entries", cursor.getCount(), 2);
 	}
-	
+
 	/**
 	 * Test an update where there is an existing update that could be optimized away.
 	 * Expect to see only one entry there.
@@ -200,12 +196,12 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		ArrayList<ContentProviderOperation> operations = journaler.getJournalUpdateOperation(TABLE, ROW, COLUMN);
 		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, operations);
 
-		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, 
+		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY,
 				journaler.getJournalUpdateOperation(TABLE, ROW, COLUMN));
 		Cursor cursor = getMockContentResolver().query(JournalContract.CONTENT_URI,
 				null,
-				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW + " and " + JournalContract.COL_NAME_COLUMN + "=?", 
-				new String[] { TABLE, COLUMN }, 
+				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW + " and " + JournalContract.COL_NAME_COLUMN + "=?",
+				new String[] { TABLE, COLUMN },
 				null);
 		assertTrue(tag + " verify pre-existing values",verifyExistence());
 		assertEquals(tag + " wrong number of entries", cursor.getCount(), 1);
@@ -221,19 +217,19 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		ArrayList<ContentProviderOperation> operations = journaler.getJournalCreateOperation(TABLE, ROW);
 		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, operations);
 
-		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, 
+		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY,
 				journaler.getJournalUpdateOperation(TABLE, ROW, COLUMN));
 		Cursor cursor = getMockContentResolver().query(JournalContract.CONTENT_URI,
 				null,
-				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW, 
-				new String[] { TABLE }, 
+				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW,
+				new String[] { TABLE },
 				null);
 		assertTrue(tag + " verify pre-existing values",verifyExistence());
 		assertEquals(tag + " wrong number of entries", cursor.getCount(), 1);
 		cursor.moveToFirst();
 		assertEquals(tag + " not a create operation", cursor.getString(cursor.getColumnIndex(JournalContract.COL_NAME_OPERATION)), Journaler.OP_TYPE_CREATE);
 	}
-	
+
 	/**
 	 * Test a simple delete operation.
 	 * Expect to see it in the journal.
@@ -247,7 +243,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		assertNotNull(tag + " result array is null", results);
 		assertTrue(tag + " result array is zero-length", results.length > 0);
 		assertNotNull(tag + " result URI is null", results[0].uri);
-		
+
 		assertTrue(tag + " verify pre-existing values" , verifyExistence());
 		Cursor cursor = getMockContentResolver().query(results[0].uri, null, null, null, null);
 		assertNotNull(tag + " cursor is null", cursor);
@@ -256,7 +252,7 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		assertEquals(tag + " inserted entry has wrong row", ROW, cursor.getLong(cursor.getColumnIndex(JournalContract.COL_NAME_ROW)));
 		assertEquals(tag + " inserted entry has wrong type", Journaler.OP_TYPE_DELETE, cursor.getString(cursor.getColumnIndex(JournalContract.COL_NAME_OPERATION)));
 	}
-	
+
 	/**
 	 * Test a delete operation with the current sequence anchor value preventing optimizations.
 	 * Expect to see all entries.
@@ -275,17 +271,17 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		ContentValues values = new ContentValues();
 		values.put(SequenceAnchorContract.COL_NAME_SEQUENCE_ANCHOR, anchor);
 		getMockContentResolver().insert(SequenceAnchorContract.CONTENT_URI, values);
-		results = getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, 
+		results = getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY,
 				journaler.getJournalDeleteOperation(TABLE, ROW));
 		Cursor cursor = getMockContentResolver().query(JournalContract.CONTENT_URI,
 				null,
-				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW, 
-				new String[] { TABLE }, 
+				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW,
+				new String[] { TABLE },
 				null);
 		assertTrue(tag + " verify pre-existing values",verifyExistence());
-		assertEquals(tag + " wrong number of entries", cursor.getCount(), 4);				
+		assertEquals(tag + " wrong number of entries", cursor.getCount(), 4);
 	}
-	
+
 	/**
 	 * Test a delete with update entries eligible for optimization already present.
 	 * Expect to see only the delete
@@ -297,19 +293,19 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		operations.addAll(journaler.getJournalUpdateOperation(TABLE, ROW, COLUMN + COLUMN));
 		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, operations);
 
-		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, 
+		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY,
 				journaler.getJournalDeleteOperation(TABLE, ROW));
 		Cursor cursor = getMockContentResolver().query(JournalContract.CONTENT_URI,
 				null,
-				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW, 
-				new String[] { TABLE }, 
+				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW,
+				new String[] { TABLE },
 				null);
 		assertTrue(tag + " verify pre-existing values",verifyExistence());
-		assertEquals(tag + " wrong number of entries", cursor.getCount(), 1);				
+		assertEquals(tag + " wrong number of entries", cursor.getCount(), 1);
 		cursor.moveToFirst();
 		assertEquals(tag + " not a delete operation", cursor.getString(cursor.getColumnIndex(JournalContract.COL_NAME_OPERATION)), Journaler.OP_TYPE_DELETE);
 	}
-	
+
 	/**
 	 * Test a delete operation with possible delete/create optimization.
 	 * Expect to see no operations in the journal (both should be optimized away)
@@ -320,14 +316,14 @@ public class JournalerTest extends ProviderTestCase2<MetaContentProvider> {
 		ArrayList<ContentProviderOperation> operations = journaler.getJournalCreateOperation(TABLE, ROW);
 		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, operations);
 
-		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY, 
+		getMockContentResolver().applyBatch(MetaContentProvider.AUTHORITY,
 				journaler.getJournalDeleteOperation(TABLE, ROW));
 		Cursor cursor = getMockContentResolver().query(JournalContract.CONTENT_URI,
 				null,
-				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW, 
-				new String[] { TABLE }, 
+				JournalContract.COL_NAME_TABLE + "=? and " + JournalContract.COL_NAME_ROW + "=" + ROW,
+				new String[] { TABLE },
 				null);
 		assertTrue(tag + " verify pre-existing values",verifyExistence());
-		assertEquals(tag + " wrong number of entries", cursor.getCount(), 0);						
+		assertEquals(tag + " wrong number of entries", cursor.getCount(), 0);
 	}
 }
