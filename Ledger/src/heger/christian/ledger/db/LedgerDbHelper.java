@@ -168,15 +168,7 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 	public static final int DB_VERSION = 1;
 	public static final String DB_NAME = "ledger.db";
 
-	private static LedgerDbHelper instance = null;
-	public static LedgerDbHelper getInstance(Context context) {
-		if (instance == null) {
-			instance = new LedgerDbHelper(context.getApplicationContext());
-		}
-		return instance;
-	}
-
-	private LedgerDbHelper(Context context) {
+	public LedgerDbHelper(Context context) {
 		super(context, DB_NAME, null, DB_VERSION);
 	}
 

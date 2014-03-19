@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.content.ContentProvider;
+import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -21,6 +22,7 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
+import android.util.Log;
 
 /**
  * Content provider for accessing the application logic level data (as opposed to the metadata accessible
@@ -73,9 +75,75 @@ public class LedgerContentProvider extends ContentProvider {
 	public static final String MIME_TYPE = "vnd.android.cursor";
 	public static final String MIME_SUBTYPE = "vnd.heger.christian.ledger.provider";
 
-	private SQLiteOpenHelper dbHelper;
+	/* package private */ SQLiteOpenHelper dbHelper;
 	private KeyGenerator keyGenerator;
 	private Journaler journaler;
+
+	@Override
+	public boolean onCreate() {
+		keyGenerator = new KeyGenerator(getContext().getContentResolver());
+		journaler = new Journaler(getContext().getContentResolver());
+		return true;
+	}
+
+	protected SQLiteOpenHelper getHelper() {
+		String TAG = "LedgerContentProvider";
+		Log.d(TAG, "Getting helper for context " + getContext());
+		if (dbHelper == null) {
+			ContentProviderClient client = getContext().getContentResolver().acquireContentProviderClient(MetaContentProvider.AUTHORITY);
+			try {
+				MetaContentProvider buddy = (MetaContentProvider) client.getLocalContentProvider();
+				Log.d(TAG, "Found buddy " + buddy);
+				if (buddy.dbHelper != null) {
+					dbHelper = buddy.dbHelper;
+					Log.d(TAG, "Found dbHelper from buddy " + dbHelper);
+				}
+			} catch (ClassCastException x /* Wasn't a MetaContentProvider */) {
+			} catch (NullPointerException x /* MetaContentProvider is unavailable (because it's client is null) */) {
+			} finally {
+				client.release();
+			}
+		}
+		if (dbHelper == null) {
+			Log.d(TAG, "Helper unavailable, creating new");
+			dbHelper = new LedgerDbHelper(getContext());
+		}
+		return dbHelper;
+	}
+
+	protected String getTableFromUri(Uri uri) {
+		String table;
+		switch (URI_MATCHER.match(uri)) {
+			case URI_ENTRIES: //$FALL-THROUGH$
+			case URI_ENTRIES_ID:
+				table = EntryContract.mapToDBContract(EntryContract.TABLE_NAME);
+				break;
+			case URI_CATEGORIES: //$FALL-THROUGH$
+			case URI_CATEGORIES_ID:
+				table = CategoryContract.mapToDBContract(CategoryContract.TABLE_NAME);
+				break;
+			case URI_CATEGORIES_SUBTOTALS: //$FALL-THROUGH$
+			case URI_CATEGORIES_SUBTOTALS_ID:
+				String month = uri.getQueryParameter(CategorySubtotalsContract.QUERY_ARG_MONTH);
+				table = CategorySubtotalsContract.generateSQL(month);
+				break;
+			case URI_MONTHS: //$FALL_THROUGH$
+			case URI_MONTHS_ID:
+				table = MonthsContract.TABLE_NAME;
+				break;
+			case URI_RULES: //$FALL-THROUGH$
+			case URI_RULES_ID:
+				table = RulesContract.TABLE_NAME;
+				break;
+			case URI_ENTRY_METADATA: //$FALL-THROUGH$
+			case URI_ENTRY_METADATA_ID:
+				table = EntryMetadataContract.TABLE_NAME;
+				break;
+			default:
+				throw new IllegalArgumentException("Could not match passed URI to a known path: " + uri);
+		}
+		return table;
+	}
 
 
 	@Override
@@ -141,49 +209,6 @@ public class LedgerContentProvider extends ContentProvider {
 		return keyGenerator.generateKey(table);
 	}
 
-
-	@Override
-	public boolean onCreate() {
-		dbHelper = LedgerDbHelper.getInstance(getContext());
-		keyGenerator = new KeyGenerator(getContext().getContentResolver());
-		journaler = new Journaler(getContext().getContentResolver());
-		return true;
-	}
-
-	protected String getTableFromUri(Uri uri) {
-		String table;
-		switch (URI_MATCHER.match(uri)) {
-			case URI_ENTRIES: //$FALL-THROUGH$
-			case URI_ENTRIES_ID:
-				table = EntryContract.mapToDBContract(EntryContract.TABLE_NAME);
-				break;
-			case URI_CATEGORIES: //$FALL-THROUGH$
-			case URI_CATEGORIES_ID:
-				table = CategoryContract.mapToDBContract(CategoryContract.TABLE_NAME);
-				break;
-			case URI_CATEGORIES_SUBTOTALS: //$FALL-THROUGH$
-			case URI_CATEGORIES_SUBTOTALS_ID:
-				String month = uri.getQueryParameter(CategorySubtotalsContract.QUERY_ARG_MONTH);
-				table = CategorySubtotalsContract.generateSQL(month);
-				break;
-			case URI_MONTHS: //$FALL_THROUGH$
-			case URI_MONTHS_ID:
-				table = MonthsContract.TABLE_NAME;
-				break;
-			case URI_RULES: //$FALL-THROUGH$
-			case URI_RULES_ID:
-				table = RulesContract.TABLE_NAME;
-				break;
-			case URI_ENTRY_METADATA: //$FALL-THROUGH$
-			case URI_ENTRY_METADATA_ID:
-				table = EntryMetadataContract.TABLE_NAME;
-				break;
-			default:
-				throw new IllegalArgumentException("Could not match passed URI to a known path: " + uri);
-		}
-		return table;
-	}
-
 	/**
 	 * Inserts the supplied <code>values</code> under the supplied <code>uri</code>.
 	 * If <code>values</code> contains an id (under <code>BaseColumns._ID</code>), it will be used,
@@ -201,7 +226,7 @@ public class LedgerContentProvider extends ContentProvider {
 	@Override
 	public Uri insert(Uri uri, ContentValues values) throws OutOfKeysException, JournalingFailedException {
 		String table = getTableFromUri(uri);
-		SQLiteDatabase db = dbHelper.getWritableDatabase();
+		SQLiteDatabase db = getHelper().getWritableDatabase();
 		switch (URI_MATCHER.match(uri)) {
 			case URI_ENTRIES_ID: 				//$FALL-THROUGH$
 			case URI_CATEGORIES_ID: 			//$FALL-THROUGH$
@@ -273,7 +298,7 @@ public class LedgerContentProvider extends ContentProvider {
 		String table = getTableFromUri(uri);
 		String groupBy = null;
 		String having = null;
-		SQLiteDatabase db = dbHelper.getReadableDatabase();
+		SQLiteDatabase db = getHelper().getReadableDatabase();
 		// If an id was supplied in the uri fragment, modify the selection accordingly
 		switch (URI_MATCHER.match(uri)) {
 			case URI_ENTRIES_ID:					// $FALL-THROUGH$
@@ -304,7 +329,7 @@ public class LedgerContentProvider extends ContentProvider {
 	@Override
 	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) throws JournalingFailedException {
 		String table = getTableFromUri(uri);
-		SQLiteDatabase db = dbHelper.getWritableDatabase();
+		SQLiteDatabase db = getHelper().getWritableDatabase();
 		// If an id was supplied in the uri fragment, modify the selection accordingly
 		switch (URI_MATCHER.match(uri)) {
 			case URI_ENTRIES_ID:					// $FALL-THROUGH$
@@ -403,7 +428,7 @@ public class LedgerContentProvider extends ContentProvider {
 		String table = getTableFromUri(uri);
 		// If an exact row was identified through the URI fragment, this will hold its id
 		Long id = null;
-		SQLiteDatabase db = dbHelper.getWritableDatabase();
+		SQLiteDatabase db = getHelper().getWritableDatabase();
 		// If an id was supplied in the URI fragment, modify the selection accordingly
 		switch (URI_MATCHER.match(uri)) {
 			case URI_ENTRIES_ID:					// $FALL-THROUGH$
