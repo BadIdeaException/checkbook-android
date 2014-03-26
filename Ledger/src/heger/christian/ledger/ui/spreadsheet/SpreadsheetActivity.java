@@ -4,7 +4,7 @@ import heger.christian.ledger.R;
 import heger.christian.ledger.control.MonthsElapsedCalculator;
 import heger.christian.ledger.providers.EntryContract;
 import heger.christian.ledger.providers.LedgerContentProvider;
-import heger.christian.ledger.providers.MonthsContract;
+import heger.christian.ledger.providers.MonthContract;
 import heger.christian.ledger.ui.categories.CategoriesActivity;
 import heger.christian.ledger.ui.entry.EntryActivity;
 import heger.christian.ledger.ui.rules.RulesActivity;
@@ -282,14 +282,14 @@ public class SpreadsheetActivity extends FragmentActivity {
 		 */
 		public int getEarliest() {
 			if (earliest == 0) {
-				Cursor cursor = getContentResolver().query(MonthsContract.CONTENT_URI, 
-						new String[] { "MIN(" + MonthsContract._ID + ") AS " + MonthsContract._ID }, 
+				Cursor cursor = getContentResolver().query(MonthContract.CONTENT_URI, 
+						new String[] { "MIN(" + MonthContract._ID + ") AS " + MonthContract._ID }, 
 						null, 
 						null, 
 						null);
 				if (cursor.moveToFirst() && 
-						!cursor.isNull(cursor.getColumnIndex(MonthsContract._ID))) { // In an empty table, cursor contains only a single null entry
-					earliest = cursor.getInt(cursor.getColumnIndex(MonthsContract._ID));									
+						!cursor.isNull(cursor.getColumnIndex(MonthContract._ID))) { // In an empty table, cursor contains only a single null entry
+					earliest = cursor.getInt(cursor.getColumnIndex(MonthContract._ID));									
 				} else {				
 					Calendar calendar = Calendar.getInstance();
 					earliest = MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR)); 

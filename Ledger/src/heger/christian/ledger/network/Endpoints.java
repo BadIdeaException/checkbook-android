@@ -1,7 +1,5 @@
 package heger.christian.ledger.network;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * Constants for URL connections.
@@ -9,19 +7,10 @@ import java.net.URL;
 public class Endpoints {
 	protected static final String HOST = "10.0.2.2"; // Host machine alias from Android
 	protected static final String PORT = "3000";
-	
+
 	protected static final String BASE = "https://" + HOST + ":" + PORT + "/";
-	
-	public static final URL URL_AUTH;
-	public static final URL URL_KEY_REQUEST;
-	
-	static {
-		try {
-			URL_AUTH = new URL(BASE + "oauth/token");
-			URL_KEY_REQUEST = new URL(BASE + "sync/key_request");
-		} catch (MalformedURLException x) {
-			throw new ExceptionInInitializerError(x);
-		}
-		
-	}
+
+	public static final String URL_AUTH = BASE + "oauth/token";
+	public static final String URL_KEY_REQUEST = BASE + "sync/key_request";
+	public static final String URL_SYNC = BASE + "sync";
 }

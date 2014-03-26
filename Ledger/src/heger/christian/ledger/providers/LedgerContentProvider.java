@@ -1,11 +1,13 @@
 package heger.christian.ledger.providers;
 
 import heger.christian.ledger.db.LedgerDbHelper;
+import heger.christian.ledger.db.LedgerDbHelper.EntryMetaDataContract;
 import heger.christian.ledger.providers.MetaContentProvider.RevisionTableContract;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -19,6 +21,7 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
@@ -39,6 +42,7 @@ import android.util.Log;
  * journaling will be rolled back as well, and a <code>JournalingFailedException</code> will be thrown.
  * Therefore, any calls to <code>insert(Uri, ContentValues)</code>, {@link #update(Uri, ContentValues, String, String[])},
  * {@link #delete(Uri, String, String[])} should always be prepared to handle this exception.
+ * Automatic journaling and revision keeping can be turned off using {@link #setJournaling(boolean)}.
  */
 public class LedgerContentProvider extends ContentProvider {
 	public static final String AUTHORITY = "heger.christian.ledger.providers.ledgercontentprovider";
@@ -65,24 +69,44 @@ public class LedgerContentProvider extends ContentProvider {
 		URI_MATCHER.addURI(AUTHORITY, CategoryContract.TABLE_NAME + "/#", URI_CATEGORIES_ID);
 		URI_MATCHER.addURI(AUTHORITY, CategorySubtotalsContract.TABLE_NAME, URI_CATEGORIES_SUBTOTALS);
 		URI_MATCHER.addURI(AUTHORITY, CategorySubtotalsContract.TABLE_NAME + "/#", URI_CATEGORIES_SUBTOTALS_ID);
-		URI_MATCHER.addURI(AUTHORITY, MonthsContract.TABLE_NAME, URI_MONTHS);
-		URI_MATCHER.addURI(AUTHORITY, MonthsContract.TABLE_NAME + "/#", URI_MONTHS_ID);
-		URI_MATCHER.addURI(AUTHORITY, RulesContract.TABLE_NAME, URI_RULES);
-		URI_MATCHER.addURI(AUTHORITY, RulesContract.TABLE_NAME + "/#", URI_RULES_ID);
+		URI_MATCHER.addURI(AUTHORITY, MonthContract.TABLE_NAME, URI_MONTHS);
+		URI_MATCHER.addURI(AUTHORITY, MonthContract.TABLE_NAME + "/#", URI_MONTHS_ID);
+		URI_MATCHER.addURI(AUTHORITY, RuleContract.TABLE_NAME, URI_RULES);
+		URI_MATCHER.addURI(AUTHORITY, RuleContract.TABLE_NAME + "/#", URI_RULES_ID);
 		URI_MATCHER.addURI(AUTHORITY, EntryMetadataContract.TABLE_NAME, URI_ENTRY_METADATA);
 		URI_MATCHER.addURI(AUTHORITY, EntryMetadataContract.TABLE_NAME + "/#", URI_ENTRY_METADATA_ID);
 	}
 	public static final String MIME_TYPE = "vnd.android.cursor";
 	public static final String MIME_SUBTYPE = "vnd.heger.christian.ledger.provider";
 
+	public static final String METHOD_ENABLE_JOURNALING = "enable_journaling";
+	public static final String METHOD_DISABLE_JOURNALING = "disable_journaling";
+
+	public static Uri getUriForTable(String table) {
+		if (table.equals(CategoryContract.TABLE_NAME)) {
+			return CategoryContract.CONTENT_URI;
+		} else if (table.equals(EntryContract.TABLE_NAME)) {
+			return EntryContract.CONTENT_URI;
+		} else if (table.equals(EntryMetaDataContract.TABLE_NAME)) {
+			return EntryMetadataContract.CONTENT_URI;
+		} else if (table.equals(RuleContract.TABLE_NAME)) {
+			return RuleContract.CONTENT_URI;
+		}
+		throw new IllegalArgumentException("Unknown table name: " + table);
+	}
+
 	/* package private */ SQLiteOpenHelper dbHelper;
 	private KeyGenerator keyGenerator;
 	private Journaler journaler;
+	private boolean journaling = true;
+	private RevisionHelper revisionHelper;
 
 	@Override
 	public boolean onCreate() {
 		keyGenerator = new KeyGenerator(getContext().getContentResolver());
 		journaler = new Journaler(getContext().getContentResolver());
+		revisionHelper = new RevisionHelper(this);
+
 		return true;
 	}
 
@@ -129,11 +153,11 @@ public class LedgerContentProvider extends ContentProvider {
 				break;
 			case URI_MONTHS: //$FALL_THROUGH$
 			case URI_MONTHS_ID:
-				table = MonthsContract.TABLE_NAME;
+				table = MonthContract.TABLE_NAME;
 				break;
 			case URI_RULES: //$FALL-THROUGH$
 			case URI_RULES_ID:
-				table = RulesContract.TABLE_NAME;
+				table = RuleContract.TABLE_NAME;
 				break;
 			case URI_ENTRY_METADATA: //$FALL-THROUGH$
 			case URI_ENTRY_METADATA_ID:
@@ -177,19 +201,19 @@ public class LedgerContentProvider extends ContentProvider {
 				break;
 			case URI_MONTHS:
 				typeSuffix = "dir";
-				subtypeSuffix = MonthsContract.MIME_SUBTYPE_SUFFIX;
+				subtypeSuffix = MonthContract.MIME_SUBTYPE_SUFFIX;
 				break;
 			case URI_MONTHS_ID:
 				typeSuffix = "item";
-				subtypeSuffix = MonthsContract.MIME_SUBTYPE_SUFFIX;
+				subtypeSuffix = MonthContract.MIME_SUBTYPE_SUFFIX;
 				break;
 			case URI_RULES:
 				typeSuffix = "dir";
-				subtypeSuffix = RulesContract.MIME_SUBTYPE_SUFFIX;
+				subtypeSuffix = RuleContract.MIME_SUBTYPE_SUFFIX;
 				break;
 			case URI_RULES_ID:
 				typeSuffix = "item";
-				subtypeSuffix = RulesContract.MIME_SUBTYPE_SUFFIX;
+				subtypeSuffix = RuleContract.MIME_SUBTYPE_SUFFIX;
 				break;
 			case URI_ENTRY_METADATA:
 				typeSuffix = "dir";
@@ -219,13 +243,16 @@ public class LedgerContentProvider extends ContentProvider {
 	 * reason, the insert will be rolled back as well, and a <code>JournalingFailedException</code>
 	 * is thrown.
 	 * <p>
-	 * A revision number of 0 will be automatically written to the revision table for the inserted row.
+	 * A revision number of 0 will be automatically written to the revision table for every column of
+	 * the inserted row.
 	 * @throws OutOfKeysException - If the key generator could not generate a key
 	 * @throws JournalingFailedException - If a record of the insert could not be written to the journal
 	 */
 	@Override
 	public Uri insert(Uri uri, ContentValues values) throws OutOfKeysException, JournalingFailedException {
 		String table = getTableFromUri(uri);
+		// Copy so the original won't be changed when we add the primary key
+		values = new ContentValues(values);
 		SQLiteDatabase db = getHelper().getWritableDatabase();
 		switch (URI_MATCHER.match(uri)) {
 			case URI_ENTRIES_ID: 				//$FALL-THROUGH$
@@ -265,23 +292,28 @@ public class LedgerContentProvider extends ContentProvider {
 				getContext().getContentResolver().notifyChange(uri, null);
 
 				// Put the insertion in the journal
-				try {
-					journaler.journalCreate(table, rowID);
-				} catch (RemoteException x) {
-					throw new JournalingFailedException(x);
-				} catch (OperationApplicationException x) {
-					throw new JournalingFailedException(x);
-				} catch (SQLiteConstraintException x) {
-					throw new JournalingFailedException(x);
+				if (journaling) {
+					try {
+						journaler.journalCreate(table, rowID);
+					} catch (RemoteException x) {
+						throw new JournalingFailedException(x);
+					} catch (OperationApplicationException x) {
+						throw new JournalingFailedException(x);
+					} catch (SQLiteConstraintException x) {
+						throw new JournalingFailedException(x);
+					}
+
+					Set<String> columns = revisionHelper.getColumns(table);
+					ContentValues revisionValues = new ContentValues();
+					revisionValues.put(RevisionTableContract.COL_NAME_TABLE, table);
+					revisionValues.put(RevisionTableContract.COL_NAME_ROW, rowID);
+					revisionValues.put(RevisionTableContract.COL_NAME_REVISION, 0);
+					for (String column: columns) {
+						// Write a revision number of 0 to the revision table for each column of the inserted row
+						revisionValues.put(RevisionTableContract.COL_NAME_COLUMN, column);
+						getContext().getContentResolver().insert(RevisionTableContract.CONTENT_URI, revisionValues);
+					}
 				}
-
-				// Write a revision number of 0 to the revision table for the inserted row
-				ContentValues revisionValues = new ContentValues();
-				revisionValues.put(RevisionTableContract.COL_NAME_TABLE, table);
-				revisionValues.put(RevisionTableContract.COL_NAME_ROW, rowID);
-				revisionValues.put(RevisionTableContract.COL_NAME_REVISION, 0);
-				getContext().getContentResolver().insert(RevisionTableContract.CONTENT_URI, revisionValues);
-
 				// If journal and revision table were written without error, mark transaction as a success
 				db.setTransactionSuccessful();
 			} else
@@ -320,7 +352,7 @@ public class LedgerContentProvider extends ContentProvider {
 
 	/**
 	 * Performs an update using the supplied values.
-	 * The update will be automatically written to the journal, entering updates for those columns
+	 * The update will be automatically written to the journal if journaling is enabled, entering updates for those columns
 	 * that were actually changed only. If journaling fails for whatever
 	 * reason, the update will be rolled back as well, and a <code>JournalingFailedException</code>
 	 * is thrown.
@@ -348,65 +380,70 @@ public class LedgerContentProvider extends ContentProvider {
 				throw new UnsupportedOperationException("Unsupported operation: UPDATE on " + table);
 		}
 
-		// Make new ArrayList for the columns. If _id column was already included in the ContentValues
-		// (which for an update should really never be the case), initialize to values.size(), otherwise
-		// make one column extra for the _id
-		List<String> projection = values.containsKey(BaseColumns._ID) ? new ArrayList<String>(values.size()) : new ArrayList<String>(values.size() + 1);
-		// Add _id column as first column
-		projection.add(0, BaseColumns._ID);
-		// For every column for which there is a value present in values, add a column of the form
-		// "(column_name != value) as column_name" to the projection
-		for (String key: values.keySet()) {
-			if (!key.equals(BaseColumns._ID))
-				projection.add("(" + key + "!= \"" + values.getAsString(key) + "\") as " + key);
+		// There's some heavy lifting ahead of us that can be skipped if we're not journaling anyway...
+		Cursor affected = null;
+		if (journaling) {
+			// Make new ArrayList for the columns. If _id column was already included in the ContentValues
+			// (which for an update should really never be the case), initialize to values.size(), otherwise
+			// make one column extra for the _id
+			List<String> projection = values.containsKey(BaseColumns._ID) ? new ArrayList<String>(values.size()) : new ArrayList<String>(values.size() + 1);
+			// Add _id column as first column
+			projection.add(0, BaseColumns._ID);
+			// For every column for which there is a value present in values, add a column of the form
+			// "(column_name != value) as column_name" to the projection
+			for (String key: values.keySet()) {
+				if (!key.equals(BaseColumns._ID))
+					projection.add("(" + key + "!= \"" + values.getAsString(key) + "\") as " + key);
+			}
+			// Get cursor of all rows that will be affected by the update. This will give us two things:
+			// The ids of all rows that will be touched by the update, we need those to pass them into the journaler
+			// A table detailing whether a column was changed within a row or not.
+			// Say we had this table t:
+			// _id | data
+			//  1  | foo
+			//  2  | bar
+			// Executing the query "select _id, (data != "bar") as data from t;" would give
+			// _id | data
+			//  1  |  1
+			//  2  |  0
+			// We will later use this knowledge to pass into the journaler only those columns that were actually changed by the update
+			affected = db.query(table, projection.toArray(new String[0]), selection, selectionArgs, null, null, null);
+			// Initialize the cursor, it seems that otherwise the update may get executed before the query (weird)
+			affected.moveToFirst();
 		}
-		// Get cursor of all rows that will be affected by the update. This will give us two things:
-		// The ids of all rows that will be touched by the update, we need those to pass them into the journaler
-		// A table detailing whether a column was changed within a row or not.
-		// Say we had this table t:
-		// _id | data
-		//  1  | foo
-		//  2  | bar
-		// Executing the query "select _id, (data != "bar") as data from t;" would give
-		// _id | data
-		//  1  |  1
-		//  2  |  0
-		// We will later use this knowledge to pass into the journaler only those columns that were actually changed by the update
-		Cursor affected = db.query(table, projection.toArray(new String[0]), selection, selectionArgs, null, null, null);
-		// Initialize the cursor, it seems that otherwise the update may get executed before the query (weird)
-		affected.moveToFirst();
-
 		// Wrap the update and subsequent journaling in a single transaction. That way, if the journaling fails,
 		// the update will be rolled back
 		db.beginTransaction();
 		try {
 			// Do the actual update
 			int result = db.update(table, values, selection, selectionArgs);
-			// Make sure there is no discrepancy between the expected and actual number of updated rows
-			if (result != affected.getCount())
-				throw new IllegalStateException("Expected to affect " + affected.getCount() + " rows, but found actually " + result + " rows were affected.");
-			// Iterate over the cursor and write every update to the journal that actually changed the value
-			affected.moveToPosition(-1);
-			ArrayList<ContentProviderOperation> journalOperations = new ArrayList<ContentProviderOperation>();
-			while (affected.moveToNext()) {
-				long id = affected.getLong(0); // We made the _id column the first in the projection
-				for (int i = 1; i < affected.getColumnCount(); i++) {
-					if (affected.getInt(i) != 0) {
-						journalOperations.addAll(journaler.getJournalUpdateOperation(table, id, affected.getColumnName(i)));
+			if (journaling) {
+				// Make sure there is no discrepancy between the expected and actual number of updated rows
+				if (result != affected.getCount())
+					throw new IllegalStateException("Expected to affect " + affected.getCount() + " rows, but found actually " + result + " rows were affected.");
+				// Iterate over the cursor and write every update to the journal that actually changed the value
+				affected.moveToPosition(-1);
+				ArrayList<ContentProviderOperation> journalOperations = new ArrayList<ContentProviderOperation>();
+				while (affected.moveToNext()) {
+					long id = affected.getLong(0); // We made the _id column the first in the projection
+					for (int i = 1; i < affected.getColumnCount(); i++) {
+						if (affected.getInt(i) != 0) {
+							journalOperations.addAll(journaler.getJournalUpdateOperation(table, id, affected.getColumnName(i)));
+						}
 					}
 				}
+				try {
+					getContext().getContentResolver().applyBatch(MetaContentProvider.AUTHORITY, journalOperations);
+				} catch (RemoteException x) {
+					throw new JournalingFailedException(x);
+				} catch (OperationApplicationException x) {
+					throw new JournalingFailedException(x);
+				} catch (SQLiteConstraintException x) {
+					throw new JournalingFailedException(x);
+				}
 			}
-			try {
-				getContext().getContentResolver().applyBatch(MetaContentProvider.AUTHORITY, journalOperations);
-				// If we get to here, journaling competed without errors - mark the entire transaction as successful
-				db.setTransactionSuccessful();
-			} catch (RemoteException x) {
-				throw new JournalingFailedException(x);
-			} catch (OperationApplicationException x) {
-				throw new JournalingFailedException(x);
-			} catch (SQLiteConstraintException x) {
-				throw new JournalingFailedException(x);
-			}
+			// If we get to here, journaling completed without errors (or was switched off) - mark the entire transaction as successful
+			db.setTransactionSuccessful();
 			if (result > 0)
 				getContext().getContentResolver().notifyChange(uri, null);
 			return result;
@@ -449,7 +486,7 @@ public class LedgerContentProvider extends ContentProvider {
 		}
 
 		List<Long> ids = new LinkedList<Long>();
-		int result;
+		int result = 0;
 
 		// Wrap the delete and the subsequent journaling in a single transaction. That way, if journaling fails,
 		// the delete will be rolled back
@@ -465,7 +502,10 @@ public class LedgerContentProvider extends ContentProvider {
 				if (result > 0) {
 					ids.add(id);
 				}
-			} else {
+			} else if (id == null && !journaling) {
+				// Not a precisely identified row, but we're not journaling anyway, so we can save ourselves the heavy stuff
+				result = db.delete(table, selection, selectionArgs);
+			} else if (id == null && journaling){
 				// There wasn't one precisely identified row by id, get a cursor of all the rows that will be
 				// affected by running a query with the same selection
 				Cursor affected = query(uri, new String[] { BaseColumns._ID }, selection, selectionArgs, null);
@@ -480,26 +520,69 @@ public class LedgerContentProvider extends ContentProvider {
 			}
 			if (result > 0) {
 				getContext().getContentResolver().notifyChange(uri, null);
-				// Journal deletions for all affected rows
-				ArrayList<ContentProviderOperation> journalOperations = new ArrayList<ContentProviderOperation>();
-				for (Long i: ids)
-					journalOperations.addAll(journaler.getJournalDeleteOperation(table, i));
+				if (journaling) {
+					// Journal deletions for all affected rows
+					ArrayList<ContentProviderOperation> journalOperations = new ArrayList<ContentProviderOperation>();
+					for (Long i: ids)
+						journalOperations.addAll(journaler.getJournalDeleteOperation(table, i));
 
-				try {
-					getContext().getContentResolver().applyBatch(MetaContentProvider.AUTHORITY, journalOperations);
-					db.setTransactionSuccessful();
-				} catch (RemoteException x) {
-					throw new JournalingFailedException(x);
-				} catch (OperationApplicationException x) {
-					throw new JournalingFailedException(x);
-				} catch (SQLiteConstraintException x) {
-					throw new JournalingFailedException(x);
+					try {
+						getContext().getContentResolver().applyBatch(MetaContentProvider.AUTHORITY, journalOperations);
+					} catch (RemoteException x) {
+						throw new JournalingFailedException(x);
+					} catch (OperationApplicationException x) {
+						throw new JournalingFailedException(x);
+					} catch (SQLiteConstraintException x) {
+						throw new JournalingFailedException(x);
+					}
 				}
+				db.setTransactionSuccessful();
 			} else
 				db.setTransactionSuccessful(); // Nothing was done, so nothing could have gone wrong
 			return result;
 		} finally {
 				db.endTransaction();
 		}
+	}
+
+	/**
+	 * This implementation understands the following method names:
+	 * <ul>
+	 * <li> <code>METHOD_ENABLE_JOURNALING</code> - results in a call to <code>setJournaling(true)</code>
+	 * <li> <code>METHOD_DISABLE_JOURNALING</code> - results in a call to <code>setJournaling(false)</code>
+	 * </ul>
+	 * @see ContentProvider#call(String, String, Bundle)
+	 */
+	@Override
+	public Bundle call(String method, String arg, Bundle extras) {
+		if (method.equals(METHOD_ENABLE_JOURNALING))
+			setJournaling(true);
+		else if (method.equals(METHOD_DISABLE_JOURNALING))
+			setJournaling(false);
+		return null;
+	}
+
+	/**
+	 * Turns journaling and revision keeping on and off.
+	 */
+	public void setJournaling(boolean journaling) {
+		Log.d("", "journaling is now " + (journaling ? "on" : "off"));
+		this.journaling = journaling;
+	}
+
+	/**
+	 * Returns whether journaling and revision keeping are currently enabled or not.
+	 * @return
+	 */
+	public boolean isJournaling() {
+		return journaling;
+	}
+
+	public Journaler getJournaler() {
+		return journaler;
+	}
+
+	public void setJournaler(Journaler journaler) {
+		this.journaler = journaler;
 	}
 }

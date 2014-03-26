@@ -17,19 +17,19 @@ import android.provider.BaseColumns;
  * content provider. This is so as to decouple the outward appearance the
  * content provider provides from the actual structure of the database
  * schema.
- * 
+ *
  * @author chris
  */
 public abstract class EntryContract implements BaseColumns {
 	public static final String TABLE_NAME = "entries";
 	public static final Uri CONTENT_URI = LedgerContentProvider.CONTENT_URI.buildUpon().appendPath(TABLE_NAME).build();
-	
+
 	public static final String COL_NAME_DATETIME = "datetime";
 	public static final String COL_NAME_CAPTION = "caption";
 	public static final String COL_NAME_VALUE = "value";
 	public static final String COL_NAME_DETAILS = "details";
 	public static final String COL_NAME_CATEGORY = "category";
-	
+
 	public static final String MIME_SUBTYPE_SUFFIX = TABLE_NAME;
 
 	protected static String mapToDBContract(String in) {

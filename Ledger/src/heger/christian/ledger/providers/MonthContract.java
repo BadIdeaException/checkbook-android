@@ -9,7 +9,7 @@ import android.provider.BaseColumns;
  * @author chris
  * 
  */
-public class MonthsContract implements BaseColumns {
+public class MonthContract implements BaseColumns {
 	public static final String TABLE_NAME = "months";
 	public static final Uri CONTENT_URI = LedgerContentProvider.CONTENT_URI.buildUpon().appendPath(TABLE_NAME).build();
 	public static final String COL_NAME_VALUE = "value";
@@ -18,7 +18,7 @@ public class MonthsContract implements BaseColumns {
 	// Calculates the elapsed months since January 1970 
 	final static String MONTHS_QUERY = "" +
 			"SELECT strftime('%m'," + EntryContract.COL_NAME_DATETIME + ")+12*(strftime('%Y'," + EntryContract.COL_NAME_DATETIME + ")-1970) as "
-			+ MonthsContract._ID
+			+ MonthContract._ID
 			+ ",  sum(value) as "
 			+ COL_NAME_VALUE
 			+ " FROM "

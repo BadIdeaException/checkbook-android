@@ -13,7 +13,7 @@ import heger.christian.ledger.db.SQLDateFormat;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.EntryContract;
 import heger.christian.ledger.providers.EntryMetadataContract;
-import heger.christian.ledger.providers.MonthsContract;
+import heger.christian.ledger.providers.MonthContract;
 import heger.christian.ledger.providers.OutOfKeysException;
 import heger.christian.ledger.textwatchers.CurrencyFormattingTextWatcher;
 import heger.christian.ledger.textwatchers.RuleApplicationTextWatcher;
@@ -425,7 +425,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		
 		// Prepare an intent for going back to the spreadsheet to the month we've just inserted to
 		final Intent intent = new Intent(Intent.ACTION_VIEW, 
-				ContentUris.withAppendedId(MonthsContract.CONTENT_URI, MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR))),
+				ContentUris.withAppendedId(MonthContract.CONTENT_URI, MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR))),
 				this, 
 				SpreadsheetActivity.class);
 

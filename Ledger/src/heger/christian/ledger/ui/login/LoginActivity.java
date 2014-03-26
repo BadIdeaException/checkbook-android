@@ -5,6 +5,7 @@ import heger.christian.ledger.accounts.AuthenticationFailedException;
 import heger.christian.ledger.accounts.Authenticator;
 import heger.christian.ledger.accounts.ServerAuthenticator;
 import heger.christian.ledger.accounts.TokenSet;
+import heger.christian.ledger.network.TruststoreException;
 
 import java.io.IOException;
 
@@ -34,11 +35,11 @@ import android.widget.TextView;
  */
 public class LoginActivity extends AccountAuthenticatorActivity {
 	private static final String LOG_TAG = LoginActivity.class.getSimpleName();
-	
+
 	public static final String ARG_ADD_ACCOUNT = "add_account";
 	public static final String ARG_ACCOUNT = "account";
 	public static final String ARG_ACCOUNT_TYPE = AccountManager.KEY_ACCOUNT_TYPE;
-	
+
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
 	 */
@@ -83,7 +84,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 		});
 
 		txtStatus = (TextView) findViewById(R.id.txt_status);
-		
+
 		viewLoginForm = findViewById(R.id.login_form);
 		viewLoginStatus = findViewById(R.id.login_status);
 		txtLoginStatusMessage = (TextView) findViewById(R.id.login_status_message);
@@ -193,7 +194,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 			viewLoginForm.setVisibility(show ? View.GONE : View.VISIBLE);
 		}
 	}
-	
+
 	private void failLogin(Exception x) {
 		Bundle result = new Bundle();
 		if (x instanceof IOException) {
@@ -203,7 +204,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 		setResult(RESULT_OK);
 		finish();
 	}
-	
+
     private void finishLogin(TokenSet tokens) {
      	Bundle extras = getIntent().getExtras();
 		final AccountManager manager = AccountManager.get(this);
@@ -254,6 +255,8 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 				return x;
 			} catch (AuthenticationFailedException x) {
 				return x;
+			} catch (TruststoreException x) {
+				return x;
 			}
 		}
 
@@ -261,7 +264,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 		protected void onPostExecute(final Object result) {
 			authTask = null;
 			showProgress(false);
-			
+
 			if (result instanceof TokenSet) {
 				finishLogin((TokenSet) result);
 			} else if (result instanceof Exception) {
@@ -281,7 +284,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 //					failLogin((Exception) result);
 				} else {
 					failLogin((Exception) result);
-				}					
+				}
 			}
 		}
 

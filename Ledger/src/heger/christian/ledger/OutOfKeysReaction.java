@@ -1,17 +1,14 @@
 package heger.christian.ledger;
 
 import heger.christian.ledger.accounts.Authenticator;
-import heger.christian.ledger.network.Endpoints;
-import heger.christian.ledger.network.SecureConnection;
+import heger.christian.ledger.network.LedgerSSLContextFactory;
+import heger.christian.ledger.network.TruststoreException;
 import heger.christian.ledger.network.UnauthorizedAccessException;
 import heger.christian.ledger.providers.MetaContentProvider.KeyGenerationContract;
 import heger.christian.ledger.sync.KeySeriesRequester;
 import heger.christian.ledger.ui.OutOfKeysDialog;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
-
-import javax.net.ssl.HttpsURLConnection;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -26,7 +23,6 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ContentValues;
-import android.content.res.Resources.NotFoundException;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -42,40 +38,40 @@ import android.widget.FrameLayout.LayoutParams;
  * This class encapsulates the common reaction to a failed insert
  * due to an exhausted key series.
  * <p>
- * It attempts to get a new key series from the 
+ * It attempts to get a new key series from the
  * server. This may involve asking the user to log in; the appropriate
  * activity will be shown.
  * If a new key series is indeed obtained, it will be written to
  * storage.
  * If it was not possible to get a new key series, a user notification
  * is displayed.
- * Because requesting a key series involves potentially long-running 
+ * Because requesting a key series involves potentially long-running
  * network operations, an overlay with a progress spinner is faded in,
  * and the original content faded out to 33%. On completion,
- * the progress view is faded out again and the original content 
+ * the progress view is faded out again and the original content
  * brought back to full opaqueness.
  * <p>
- * A <code>KeyRequestResultListener</code> can be attached to be 
+ * A <code>KeyRequestResultListener</code> can be attached to be
  * notified of the outcome of the request. If present, the listener
  * is always called last.
  * <p>
- * Note: As part of reacting to an exhausted key series, a temporary 
+ * Note: As part of reacting to an exhausted key series, a temporary
  * fragment is attached to the calling activity using this class's
  * canonical name as the tag. This is done to allow a started key
  * series request to persist across configuration changes. On completion,
  * the fragment is automatically removed again.
  * <h2>Internal protocol</h2>
- * Internally, it relies on two separate <code>Handler</code>s (an <i>account handler</i> 
+ * Internally, it relies on two separate <code>Handler</code>s (an <i>account handler</i>
  * and a <i>network handler</i>) communicating.
- * This is because the <code>LoginActivity</code> does not get shown if 
+ * This is because the <code>LoginActivity</code> does not get shown if
  * {@link AccountManager#getAuthToken(Account, String, Bundle, Activity, AccountManagerCallback, Handler)}
  * is not called from the main thread.
  * When both handlers are fully set up, the protocol is as follows:
  * <ol>
- * <li>The network handler gets sent a message to start the algorithm. This will make it initialize the 
- * network connection and then wait.
+ * <li>The network handler gets sent a message to start the algorithm. This will make it initialize the
+ * key requester and then wait.
  * <li>The main handler gets sent a message to get an authorization token. This may
- * include showing a login form to the user. If a token is successfully obtained, a message 
+ * include showing a login form to the user. If a token is successfully obtained, a message
  * indicating so and including the token is sent to the network handler. If no token could be obtained,
  * a CANCEL message is sent to the network handler.
  * <li>The network handler uses the token to make a key series request to the server. If this is successful,
@@ -88,20 +84,20 @@ import android.widget.FrameLayout.LayoutParams;
  * <li>If the account handler receives a message indicating an invalid token, it invalidates the token in the
  * <code>AccountManager</code> and sends itself a new message to get an authorization token. The process repeats
  * from step 2.
- * <li>If the account manager gets a message indicating failure of the key request, it performs a clean up (see below). 
- * An <code>OutOfKeysDialog</code> is shown to inform the user of the failure. Finally, 
+ * <li>If the account manager gets a message indicating failure of the key request, it performs a clean up (see below).
+ * An <code>OutOfKeysDialog</code> is shown to inform the user of the failure. Finally,
  * if a <code>KeyRequestResultListener</code> is attached, its <code>onFailure()</code> callback is called.
- * <li>If the network handler, at any time, receives a request for cancellation, it will tear down the 
- * connection and send a message indicating failure to the account handler. It will not interrupt an ongoing 
+ * <li>If the network handler, at any time, receives a request for cancellation, it will tear down the
+ * connection and send a message indicating failure to the account handler. It will not interrupt an ongoing
  * request.
  * </ol>
- * "Performing a clean up" in the steps outlined above means 
+ * "Performing a clean up" in the steps outlined above means
  * <ul>
- * <li>quitting the network handler, thereby allowing it to 
- * terminate, 
+ * <li>quitting the network handler, thereby allowing it to
+ * terminate,
  * <li>fading out the overlay and bringing the original content back to full opaqueness,
  * <li>and removing the temporary fragment from the hosting activity.
- * </ul> 
+ * </ul>
  */
 public class OutOfKeysReaction extends Fragment {
 	/**
@@ -126,7 +122,7 @@ public class OutOfKeysReaction extends Fragment {
 	 */
 	private static final int EVENT_SUCCEEDED = 4;
 	/**
-	 * The key series request failed. More information might be available 
+	 * The key series request failed. More information might be available
 	 * in the <code>WorkerArgs.payload</code>.
 	 */
 	private static final int EVENT_FAILED = 5;
@@ -142,35 +138,34 @@ public class OutOfKeysReaction extends Fragment {
 	private int duration;
 	private FrameLayout overlay;
 	private View content;
-	
+
 	public interface KeyRequestResultListener {
 		public void onSuccess();
 		public void onFailure();
 	}
 	private KeyRequestResultListener listener;
-	
+
 	protected static class WorkerArgs {
 		Handler handler;
 		Object payload;
 	}
 	protected class NetworkHandler extends Handler {
-		private SecureConnection connection;
+		private KeySeriesRequester requester;
 		public NetworkHandler(Looper looper) {
 			super(looper);
 		}
 		/**
-		 * Prepare the connection and wait
+		 * Prepare the requester, giving it a SSLSocketFactory for our self-signed certificate, then wait
+		 * @throws TruststoreException If setting up the trust store failed
 		 */
-		protected void prepareConnection() throws IOException, NotFoundException, GeneralSecurityException {
-			// Prepare a secure connection
-			connection = new SecureConnection((HttpsURLConnection) Endpoints.URL_KEY_REQUEST.openConnection());
-			// This might be long-running because we're reading from file system
-			connection.loadTruststore(getActivity().getResources().openRawResource(R.raw.truststore), null);
+		protected void prepareRequester() throws TruststoreException {
+			requester = new KeySeriesRequester();
+			requester.setSSLSocketFactory(new LedgerSSLContextFactory(getActivity()).createSSLContext().getSocketFactory());
 		}
-		protected boolean requestKeys() throws IOException {
+		protected boolean requestKeys(String token) throws IOException {
 			// Request new key series from the server using the connection
-			Bundle bundle = new KeySeriesRequester().request(connection);
-			
+			Bundle bundle = requester.request(token);
+
 			// If response has a new key series, write it to storage
 			if (bundle.containsKey(KeySeriesRequester.KEY_NEXT_KEY) && bundle.containsKey(KeySeriesRequester.KEY_UPPER_BOUND)) {
 				ContentValues values = new ContentValues();
@@ -185,7 +180,7 @@ public class OutOfKeysReaction extends Fragment {
 			} else
 				return false;
 		}
-		
+
 		/* (non-Javadoc)
 		 * @see android.os.Handler#handleMessage(android.os.Message)
 		 */
@@ -195,56 +190,51 @@ public class OutOfKeysReaction extends Fragment {
 			int what;
 			try{
 				switch(msg.what) {
-					case EVENT_START: 
+					case EVENT_START:
 						// Prepare the connection and wait
 						try {
-							prepareConnection();
-						} catch (NotFoundException x) {
-							what = EVENT_FAILED;
-							args.payload = x;
-						} catch (GeneralSecurityException x) {
+							prepareRequester();
+						} catch (TruststoreException x) {
 							what = EVENT_FAILED;
 							args.payload = x;
 						}
 						// Return without sending a reply
 						return;
-					case EVENT_TOKEN_AVAILABLE: 
+					case EVENT_TOKEN_AVAILABLE:
 						// Go to the server with the token and get keys
 						String token = (String) args.payload;
-						connection.bear(token);
 						try {
-							if (requestKeys()) {
+							if (requestKeys(token)) {
 								what = EVENT_SUCCEEDED;
 							} else
 								what = EVENT_FAILED;
 						} catch (UnauthorizedAccessException x) {
 							// Unauthorized access might mean our token has expired.
-							// Send a request to the other thread to invalidate it 
+							// Send a request to the other thread to invalidate it
 							// and come again
 							what = EVENT_INVALID_TOKEN;
 							args.payload = token;
-						}					
+						}
 						break;
-					case EVENT_CANCEL: 
-						connection.disconnect();
+					case EVENT_CANCEL:
 						// Canceling means the operation failed, send the appropriate reply
 						what = EVENT_FAILED;
 						break;
-					default: 
+					default:
 						return;
 				}
 			} catch (IOException x) {
 				what = EVENT_FAILED;
 				args.payload = x;
 			}
-			
+
 			Message reply = args.handler.obtainMessage(what);
 			args.handler = this;
 			reply.obj = args;
 			reply.sendToTarget();
 		}
 	}
-	
+
 	protected class AccountHandler extends Handler {
 		public AccountHandler(Looper looper) {
 			super(looper);
@@ -265,14 +255,14 @@ public class OutOfKeysReaction extends Fragment {
 						reply.sendToTarget();
 						return;
 					}
-					
+
 					AccountManager manager = AccountManager.get(activity);
 					Account[] accounts = manager.getAccountsByType(Authenticator.ACCOUNT_TYPE);
 					if (accounts.length == 0) throw new IllegalStateException("No accounts available when trying to request new keys.");
-					manager.getAuthToken(accounts[0], 
-							Authenticator.TOKEN_TYPE_ACCESS, 
-							null, 
-							activity, 
+					manager.getAuthToken(accounts[0],
+							Authenticator.TOKEN_TYPE_ACCESS,
+							null,
+							activity,
 							new AccountManagerCallback<Bundle>() {
 								@Override
 								public void run(AccountManagerFuture<Bundle> future) {
@@ -282,7 +272,7 @@ public class OutOfKeysReaction extends Fragment {
 										if (bundle.containsKey(AccountManager.KEY_AUTHTOKEN)) {
 											reply.what = EVENT_TOKEN_AVAILABLE;
 											args.payload = bundle.getString(AccountManager.KEY_AUTHTOKEN);
-										} else 
+										} else
 											reply.what = EVENT_CANCEL;
 									} catch (OperationCanceledException x) {
 										reply.what = EVENT_CANCEL;
@@ -295,10 +285,10 @@ public class OutOfKeysReaction extends Fragment {
 									reply.obj = args;
 									reply.sendToTarget();
 								}
-							}, 
+							},
 							null);
 					break; }
-				case EVENT_INVALID_TOKEN: { 
+				case EVENT_INVALID_TOKEN: {
 					String token = (String) args.payload;
 					// If activity has become unavailable, cancel
 					Activity activity = getActivity();
@@ -325,7 +315,7 @@ public class OutOfKeysReaction extends Fragment {
 	}
 
 	public OutOfKeysReaction() {}
-	
+
 	/**
 	 * Creates a new handler to run on the main thread for dealing with <code>AccountManager</code>.
 	 * This is necessary because apparently if called from another thread, the login activity
@@ -334,7 +324,7 @@ public class OutOfKeysReaction extends Fragment {
 	 * <p>
 	 * Creates a new handler to run on a new thread for running network requests. This handler gets
 	 * sent the <code>EVENT_START</code> message after creation.
-	 * 
+	 *
 	 */
 	protected void createAndStartHandlers() {
 		Handler accountHandler = new AccountHandler(getActivity().getMainLooper());
@@ -354,7 +344,7 @@ public class OutOfKeysReaction extends Fragment {
 		msg.obj = args;
 		msg.sendToTarget();
 	}
-	
+
 	/**
 	 * Do some clean up:
 	 * <ul>
@@ -372,14 +362,14 @@ public class OutOfKeysReaction extends Fragment {
 		FragmentManager fragmentManager = getActivity().getFragmentManager();
 		fragmentManager.beginTransaction().remove(this).commit();
 	}
-	
+
 	/**
-	 * Adds to the view tree and fades in an overlay to show while trying to get more keys from the server, 
+	 * Adds to the view tree and fades in an overlay to show while trying to get more keys from the server,
 	 * and fades the original content to 33%.
 	 */
 	public void showOverlay() {
 		duration = getActivity().getResources().getInteger(android.R.integer.config_shortAnimTime);
-		
+
 		// Show an overlay with a progress spinner
 		overlay = new FrameLayout(getActivity());
 		overlay.setOnClickListener(new OnClickListener() {
@@ -391,16 +381,16 @@ public class OutOfKeysReaction extends Fragment {
 		// Navigate down one level
 		// If we don't do this, the original content won't be visible anymore
 		if (content instanceof ViewGroup) content = ((ViewGroup) content).getChildAt(0);
-		
+
 		overlay.setAlpha(0);
-		
+
 		((ViewGroup) content.getParent()).addView(overlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		overlay.animate().setDuration(duration).alpha(1);
 		content.animate().setDuration(duration).alpha(0.33f);
 	}
-	
+
 	/**
-	 * Fades out the overlay and then removes it from the view tree, while fading the original 
+	 * Fades out the overlay and then removes it from the view tree, while fading the original
 	 * content back to 100%.
 	 */
 	public void hideOverlay() {
@@ -410,14 +400,14 @@ public class OutOfKeysReaction extends Fragment {
 				((ViewGroup) overlay.getParent()).removeView(overlay);
 			}
 		});
-		content.animate().setDuration(duration).alpha(1);		
+		content.animate().setDuration(duration).alpha(1);
 	}
-	
+
 	protected void onSuccess() {
 		cleanUp();
 		if (listener != null) listener.onSuccess();
 	}
-	
+
 	protected void onFailure() {
 		cleanUp();
 		// Inform the user
@@ -425,12 +415,12 @@ public class OutOfKeysReaction extends Fragment {
 		dialog.show(getActivity().getFragmentManager(), OUT_OF_KEYS_DIALOG_TAG);
 		if (listener != null) listener.onFailure();
 	}
-	
+
 	public void handleOutOfKeys() {
 		showOverlay();
 		createAndStartHandlers();
 	}
-	
+
 	public static OutOfKeysReaction newInstance(Activity activity) {
 		OutOfKeysReaction reaction = new OutOfKeysReaction();
 		reaction.setRetainInstance(true);
@@ -439,7 +429,7 @@ public class OutOfKeysReaction extends Fragment {
 		fragmentManager.executePendingTransactions();
 		return reaction;
 	}
-	
+
 	/**
 	 * @return the listener
 	 */

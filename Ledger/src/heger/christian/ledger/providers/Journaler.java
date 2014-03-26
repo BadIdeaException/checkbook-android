@@ -52,6 +52,7 @@ public class Journaler {
 		 * that can be optimized away.
 		 */
 		public List<ContentProviderOperation> operations = new LinkedList<ContentProviderOperation>();
+		public OptimizationOperations() {}
 	}
 
 	public static final String OP_TYPE_CREATE = "c";
@@ -229,7 +230,7 @@ public class Journaler {
 	 * @return An <code>OptimizationOperations</code> that contains the optimizations
 	 * possible given the current deletion.
 	 */
-	public OptimizationOperations getDeleteOptimizations(String table, long id) {
+	protected OptimizationOperations getDeleteOptimizations(String table, long id) {
 		// Select all updates or creates for the same table and row that have a
 		// sequence number higher than N
 		String where = JournalContract.COL_NAME_TABLE + "=? and " +

@@ -6,7 +6,7 @@ import android.provider.BaseColumns;
 /**
  * Rule contract for the content provider. 
  */
-public class RulesContract implements BaseColumns {
+public class RuleContract implements BaseColumns {
 	public static final String TABLE_NAME = "rules";
 	public static final Uri CONTENT_URI = LedgerContentProvider.CONTENT_URI.buildUpon().appendPath(TABLE_NAME).build();
 	
@@ -15,7 +15,7 @@ public class RulesContract implements BaseColumns {
 	
 	public static final String MIME_SUBTYPE_SUFFIX = TABLE_NAME;
 
-	protected RulesContract() {
+	protected RuleContract() {
 	}
 
 }

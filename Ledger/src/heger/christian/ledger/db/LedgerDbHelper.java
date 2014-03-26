@@ -12,7 +12,7 @@ import android.provider.BaseColumns;
 public class LedgerDbHelper extends SQLiteOpenHelper {
 	public static final String DEFAULT_PRAGMA_FOREIGN_KEYS = "ON";
 
-	public static abstract class MonthsContract extends heger.christian.ledger.providers.MonthsContract {
+	public static abstract class MonthContract extends heger.christian.ledger.providers.MonthContract {
 		protected static final String SQL_CREATE =
 				"create view " + TABLE_NAME + " as " +
 				"select strftime('%m'," + EntryContract.COL_NAME_DATETIME +
@@ -69,7 +69,7 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 		}
 	}
 
-	public static abstract class RulesContract extends heger.christian.ledger.providers.RulesContract {
+	public static abstract class RuleContract extends heger.christian.ledger.providers.RuleContract {
 		protected static final String SQL_CREATE =
 				"create table " + TABLE_NAME + " (" +
 				BaseColumns._ID + " integer primary key," +
@@ -139,8 +139,10 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 			"create table " + TABLE_NAME + " (" +
 			COL_NAME_TABLE + " text not null, " +
 			COL_NAME_ROW + " integer not null, " +
-			COL_NAME_COLUMN + " text, " +
-			COL_NAME_REVISION + " integer not null);";
+			COL_NAME_COLUMN + " text not null, " +
+			COL_NAME_REVISION + " integer not null, " +
+			"primary key (" + COL_NAME_TABLE + "," + COL_NAME_ROW + "," + COL_NAME_COLUMN + ") " +
+			"on conflict replace)";
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
 		}
@@ -176,9 +178,9 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 	public void onCreate(SQLiteDatabase db) {
 		CategoryContract.createTable(db);
 		EntryContract.createTable(db);
-		MonthsContract.createTable(db);
+		MonthContract.createTable(db);
 		EntryMetaDataContract.createTable(db);
-		RulesContract.createTable(db);
+		RuleContract.createTable(db);
 		// Metadata tables:
 		KeyGenerationContract.createTable(db);
 		SequenceAnchorContract.createTable(db);

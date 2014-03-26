@@ -6,7 +6,7 @@ import heger.christian.ledger.R;
 import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.OutOfKeysException;
-import heger.christian.ledger.providers.RulesContract;
+import heger.christian.ledger.providers.RuleContract;
 import heger.christian.ledger.ui.rules.EditRuleDialog.EditRuleDialogListener;
 import android.app.DialogFragment;
 import android.app.ListActivity;
@@ -34,10 +34,10 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	private class AddRuleDialogListener implements EditRuleDialogListener {
 		@Override
 		public void onClose(String caption, long category) {			
-			final Uri uri = RulesContract.CONTENT_URI;
+			final Uri uri = RuleContract.CONTENT_URI;
 			final ContentValues values = new ContentValues();
-			values.put(RulesContract.COL_NAME_ANTECEDENT, caption);
-			values.put(RulesContract.COL_NAME_CONSEQUENT, category);
+			values.put(RuleContract.COL_NAME_ANTECEDENT, caption);
+			values.put(RuleContract.COL_NAME_CONSEQUENT, category);
 			new SturdyAsyncQueryHandler(getContentResolver()) {
 				@Override
 				public void onError(int token, Object cookie, RuntimeException error) {
@@ -69,16 +69,16 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}
 		@Override
 		public void onClose(String caption, long category) {
-			Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, id);
+			Uri uri = ContentUris.withAppendedId(RuleContract.CONTENT_URI, id);
 			
 			ContentValues values = null;
 			if (!caption.equals(this.caption)) {
 				values = new ContentValues();
-				values.put(RulesContract.COL_NAME_ANTECEDENT, caption);
+				values.put(RuleContract.COL_NAME_ANTECEDENT, caption);
 			}
 			if (category != this.category) {
 				if (values == null) values = new ContentValues();
-				values.put(RulesContract.COL_NAME_CONSEQUENT, category);
+				values.put(RuleContract.COL_NAME_CONSEQUENT, category);
 			}
 			if (values != null)
 				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
@@ -90,8 +90,8 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			private int caption;
 			private int category;
 			public void indexColumns(Cursor sample) {
-				caption = sample.getColumnIndex(RulesContract.COL_NAME_ANTECEDENT);
-				category = sample.getColumnIndex(RulesContract.COL_NAME_CONSEQUENT);
+				caption = sample.getColumnIndex(RuleContract.COL_NAME_ANTECEDENT);
+				category = sample.getColumnIndex(RuleContract.COL_NAME_CONSEQUENT);
 			}
 		}
 		private class CategoryColumns {
@@ -172,13 +172,13 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		adapter = new SimpleCursorAdapter(this, 
 				R.layout.listitem_rules, 
 				null, 
-				new String[] { RulesContract.COL_NAME_ANTECEDENT, RulesContract.COL_NAME_CONSEQUENT }, 
+				new String[] { RuleContract.COL_NAME_ANTECEDENT, RuleContract.COL_NAME_CONSEQUENT }, 
 				new int[] { R.id.txt_caption, R.id.txt_category }, 0) {
 			@Override
 			public long getItemId(int position) {
 				Cursor cursor = getCursor();
 				cursor.moveToPosition(position);
-				return cursor.getLong(cursor.getColumnIndex(RulesContract._ID));
+				return cursor.getLong(cursor.getColumnIndex(RuleContract._ID));
 			}
 		};
 		viewBinder = new RuleViewBinder();
@@ -257,7 +257,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		switch (id) {
 			case LOADER_RULES: 
-				return new CursorLoader(this, RulesContract.CONTENT_URI, null, null, null, null);				
+				return new CursorLoader(this, RuleContract.CONTENT_URI, null, null, null, null);				
 			case LOADER_CATEGORIES:
 				return new CursorLoader(this, CategoryContract.CONTENT_URI, null, null, null, null);
 			default:
@@ -316,8 +316,8 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		long id = adapter.getItemId(position);
 		
 		Cursor cursor = (Cursor) adapter.getItem(position);
-		String caption = cursor.getString(cursor.getColumnIndex(RulesContract.COL_NAME_ANTECEDENT));
-		long category = cursor.getLong(cursor.getColumnIndex(RulesContract.COL_NAME_CONSEQUENT));
+		String caption = cursor.getString(cursor.getColumnIndex(RuleContract.COL_NAME_ANTECEDENT));
+		long category = cursor.getLong(cursor.getColumnIndex(RuleContract.COL_NAME_CONSEQUENT));
 		
 		EditRuleDialog dialog = EditRuleDialog.newInstance(caption, category, viewBinder.categories);
 		dialog.setDialogListener(new ModifyRuleDialogListener(id, caption, category));
@@ -334,7 +334,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			return;
 		}
 		
-		Uri uri = ContentUris.withAppendedId(RulesContract.CONTENT_URI, id);		
+		Uri uri = ContentUris.withAppendedId(RuleContract.CONTENT_URI, id);		
 		DialogFragment dialog = ConfirmDeleteDialog.newInstance(uri);
 		dialog.show(getFragmentManager(), ConfirmDeleteDialog.class.toString());
 	}

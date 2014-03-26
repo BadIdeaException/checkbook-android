@@ -1,7 +1,7 @@
 package heger.christian.ledger.control.rules;
 
 import heger.christian.ledger.db.CursorAccessHelper;
-import heger.christian.ledger.providers.RulesContract;
+import heger.christian.ledger.providers.RuleContract;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,7 +55,7 @@ public class RuleMatcher {
 			CursorAccessHelper helper = new CursorAccessHelper(cursor);
 			
 			while (cursor.moveToNext()) {
-				int id = helper.getInt(RulesContract.COL_NAME_CONSEQUENT);
+				int id = helper.getInt(RuleContract.COL_NAME_CONSEQUENT);
 				int count = result.containsKey(id) ? result.get(id) : 0;
 				result.put(id, count + 1);
 			}
@@ -86,13 +86,13 @@ public class RuleMatcher {
 		if (words.length == 0)
 			return Collections.emptyMap();
 		
-		String where = "(" + RulesContract.COL_NAME_ANTECEDENT + " like ?)";
+		String where = "(" + RuleContract.COL_NAME_ANTECEDENT + " like ?)";
 		for (int i = 1; i < words.length; i++) {
-			where += " OR (" + RulesContract.COL_NAME_ANTECEDENT + "like ?)";
+			where += " OR (" + RuleContract.COL_NAME_ANTECEDENT + "like ?)";
 		}
 		Cursor cursor = resolver.query(
-				RulesContract.CONTENT_URI, 
-				new String[] { RulesContract.COL_NAME_CONSEQUENT }, 
+				RuleContract.CONTENT_URI, 
+				new String[] { RuleContract.COL_NAME_CONSEQUENT }, 
 				where, 
 				words, 
 				null);

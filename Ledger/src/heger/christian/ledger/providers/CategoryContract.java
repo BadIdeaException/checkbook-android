@@ -10,7 +10,7 @@ public abstract class CategoryContract implements BaseColumns {
 	public static final String COL_NAME_CAPTION = "caption";
 
 	public static final String MIME_SUBTYPE_SUFFIX = TABLE_NAME;
-	
+
 	protected static String mapToDBContract(String in) {
 		if (in.equals(TABLE_NAME))
 			return LedgerDbHelper.CategoryContract.TABLE_NAME;

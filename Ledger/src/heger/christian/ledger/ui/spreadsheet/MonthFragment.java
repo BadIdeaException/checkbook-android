@@ -67,64 +67,64 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 			}
 			return false;
 		}
-		
+
 	}
 	private ExpandableListView listEntries;
 	private SpreadsheetAdapter adapter;
 	// ID of the month this fragment is displaying
 	private int month;
 	private View footerView;
-	
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setRetainInstance(true);
 	}
-	
+
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstance) {
 		View view = inflater.inflate(R.layout.layout_month_spreadsheet,
 				container, false);
 		Bundle args = getArguments();
-		
+
 		this.month = args.getInt(SpreadsheetActivity.ARG_MONTH_ID);
-		
+
 		getLoaderManager().initLoader(0, null, this);
 
 		listEntries = (ExpandableListView) view.findViewById(R.id.list_entries);
 		footerView = getLayoutInflater(null).inflate(R.layout.listitem_entries, null);
-		
+
 		// Android only draws a divider between the last list item and the footer if the footer is selectable.
 		// Making the actual footer selectable will make it acknowledge clicks with the standard blue background,
 		// which for a no-op is somewhat ugly.
-		// So, an empty (zero height) view is added as a workaround. Android will draw a divider between the 
+		// So, an empty (zero height) view is added as a workaround. Android will draw a divider between the
 		// last list item and this.
 		listEntries.addFooterView(new View(getActivity()), null, true);
 		listEntries.addFooterView(footerView, null, false);
-		
-		adapter = new SpreadsheetAdapter(this.getActivity(), 
-				null, 
-				R.layout.listitem_entries, 
-				new String[] { CategorySubtotalsContract.COL_NAME_CAPTION, CategorySubtotalsContract.COL_NAME_VALUE }, 
-				new int[] { R.id.txt_caption, R.id.txt_value }, 
-				R.layout.listitem_entries, 
-				new String[] { EntryContract.COL_NAME_CAPTION, EntryContract.COL_NAME_VALUE }, 
+
+		adapter = new SpreadsheetAdapter(this.getActivity(),
+				null,
+				R.layout.listitem_entries,
+				new String[] { CategorySubtotalsContract.COL_NAME_CAPTION, CategorySubtotalsContract.COL_NAME_VALUE },
+				new int[] { R.id.txt_caption, R.id.txt_value },
+				R.layout.listitem_entries,
+				new String[] { EntryContract.COL_NAME_CAPTION, EntryContract.COL_NAME_VALUE },
 				new int[] { R.id.txt_caption, R.id.txt_value },
 				MonthsElapsedCalculator.getMonth(month), MonthsElapsedCalculator.getYear(month));
 		adapter.setViewBinder(new RowViewBinder(getActivity()));
 		listEntries.setAdapter(adapter);
 		listEntries.setOnChildClickListener(this);
-		
+
 		// Set the text view for the caption of the spreadsheet to be
 		// <month> <year>
-		String monthName = DateFormatSymbols.getInstance().getMonths()[MonthsElapsedCalculator.getMonth(month)]; 
+		String monthName = DateFormatSymbols.getInstance().getMonths()[MonthsElapsedCalculator.getMonth(month)];
 		((TextView) view.findViewById(R.id.txt_month)).setText(monthName + " " + String.valueOf(MonthsElapsedCalculator.getYear(month)));
-		
+
 //		FrameLayout overlay = new FrameLayout(getActivity());
-//		
+//
 //		ImageView btn = new ImageView(getActivity());
 //		btn.setImageResource(R.drawable.action_autofill_new_month);
-//		
+//
 ////		overlay.setBackgroundColor(getResources().getColor(R.color.transparent_white));
 //		overlay.addView(btn);
 //		btn.setScaleX(0.33f);
@@ -144,14 +144,14 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 		Cursor cursor = adapter.getChild(groupPosition, childPosition);
 		// Get id value for the clicked entry
 		long entryId = cursor.getLong(cursor.getColumnIndex(EntryContract._ID));
-		Intent intent = new Intent(Intent.ACTION_EDIT, 
-				ContentUris.appendId(EntryContract.CONTENT_URI.buildUpon(),entryId).build(), 
-				getActivity(), 
+		Intent intent = new Intent(Intent.ACTION_EDIT,
+				ContentUris.withAppendedId(EntryContract.CONTENT_URI,entryId),
+				getActivity(),
 				EntryActivity.class);
 		startActivity(intent);
 		return true;
 	}
-	
+
 	/**
 	 * Updates the footer view to the passed value. The caption is the string resource <i>R.string.total</i>.
 	 * It creates a temporary one-row cursor, then passes it to a new instance of <code>{@link MonthFragment.RowViewBinder}</code>.
@@ -160,11 +160,11 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 	 */
 	private void updateFooter(int newValue) {
 		// Create new one-row MatrixCursor
-		// An (empty) _id column is inserted to keep the row indices in line with the actual data cursors and 
+		// An (empty) _id column is inserted to keep the row indices in line with the actual data cursors and
 		// to ensure compatibility with the ExpandableListView
-		MatrixCursor cursor = new MatrixCursor(new String[] { CategorySubtotalsContract._ID, 
-					CategorySubtotalsContract.COL_NAME_CAPTION, 
-					CategorySubtotalsContract.COL_NAME_VALUE }, 
+		MatrixCursor cursor = new MatrixCursor(new String[] { CategorySubtotalsContract._ID,
+					CategorySubtotalsContract.COL_NAME_CAPTION,
+					CategorySubtotalsContract.COL_NAME_VALUE },
 				1);
 		cursor.addRow(new Object[] { null, getResources().getString(R.string.total), newValue });
 		// Move cursor to its only row
@@ -179,17 +179,17 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		Uri.Builder builder = CategorySubtotalsContract.CONTENT_URI.buildUpon();
 		builder.appendQueryParameter(CategorySubtotalsContract.QUERY_ARG_MONTH, String.valueOf(month));
-		return new CursorLoader(this.getActivity(), 
-				builder.build(), 
-				null, 
+		return new CursorLoader(this.getActivity(),
+				builder.build(),
+				null,
 				null,
 				null,
 				CategorySubtotalsContract._ID);
 	}
 
 	@Override
-	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
-		adapter.setGroupCursor(data);	
+	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+		adapter.setGroupCursor(data);
 		int total = 0;
 		int valueColumn = data.getColumnIndex(CategorySubtotalsContract.COL_NAME_VALUE);
 		data.moveToPosition(-1);
