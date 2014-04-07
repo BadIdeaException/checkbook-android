@@ -99,7 +99,7 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 		this.month = args.getInt(SpreadsheetActivity.ARG_MONTH_ID);
 
 		listEntries = (ExpandableListView) view.findViewById(R.id.list_entries);
-		footerView = getLayoutInflater(null).inflate(R.layout.listitem_entries, null);
+		footerView = getLayoutInflater(null).inflate(R.layout.listitem_spreadsheet_category, null);
 
 		// Android only draws a divider between the last list item and the footer if the footer is selectable.
 		// Making the actual footer selectable will make it acknowledge clicks with the standard blue background,
@@ -112,10 +112,10 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 		getLoaderManager().initLoader(0, null, this);
 		adapter = new SpreadsheetAdapter(this.getActivity(),
 				null,
-				R.layout.listitem_entries,
+				R.layout.listitem_spreadsheet_category,
 				new String[] { CategorySubtotalsContract.COL_NAME_CAPTION, CategorySubtotalsContract.COL_NAME_VALUE },
 				new int[] { R.id.txt_caption, R.id.txt_value },
-				R.layout.listitem_entries,
+				R.layout.listitem_spreadsheet_entry,
 				new String[] { EntryContract.COL_NAME_CAPTION, EntryContract.COL_NAME_VALUE },
 				new int[] { R.id.txt_caption, R.id.txt_value },
 				MonthsElapsedCalculator.getMonth(month), MonthsElapsedCalculator.getYear(month));
