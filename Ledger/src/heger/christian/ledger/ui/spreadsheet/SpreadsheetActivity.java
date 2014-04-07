@@ -2,7 +2,6 @@ package heger.christian.ledger.ui.spreadsheet;
 
 import heger.christian.ledger.R;
 import heger.christian.ledger.control.MonthsElapsedCalculator;
-import heger.christian.ledger.providers.EntryContract;
 import heger.christian.ledger.providers.LedgerContentProvider;
 import heger.christian.ledger.providers.MonthContract;
 import heger.christian.ledger.ui.categories.CategoriesActivity;
@@ -17,10 +16,10 @@ import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.ActionBar.OnNavigationListener;
 import android.content.ContentUris;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.TypedArray;
 import android.database.Cursor;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -52,7 +51,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 	 *
 	 */
 	private class NavigationAdapter extends BaseAdapter {
-		private static final int RANGE = 3; // Number of months before and after current one to show in spinner 
+		private static final int RANGE = 3; // Number of months before and after current one to show in spinner
 
 		/**
 		 * This is the item id for the "go to month" item
@@ -66,8 +65,8 @@ public class SpreadsheetActivity extends FragmentActivity {
 		 * This is the item id for the divider
 		 */
 		public static final long ID_DIVIDER = 0x8000000000000003l;
-		
-		public NavigationAdapter(Context context, int layout) {
+
+		public NavigationAdapter() {
 			super();
 		}
 		private Integer getMonthIdForPosition(int position) {
@@ -101,18 +100,18 @@ public class SpreadsheetActivity extends FragmentActivity {
 		@SuppressWarnings("deprecation")
 		@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 		private View getDivider() {
-			TypedArray styledAttr = getTheme().obtainStyledAttributes(new int[] { android.R.attr.listDivider });			
-			TextView divider = new TextView(SpreadsheetActivity.this); 
-			divider.setHeight(2 * (int) (getResources().getDisplayMetrics().density + 0.5f));
+			TypedArray styledAttr = getTheme().obtainStyledAttributes(new int[] { android.R.attr.listDivider });
+			TextView divider = new TextView(SpreadsheetActivity.this);
+			divider.setHeight(3 * (int) (getResources().getDisplayMetrics().density + 0.5f));
 			if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.JELLY_BEAN) {
 				divider.setBackgroundDrawable(styledAttr.getDrawable(0));
 			} else { divider.setBackground(styledAttr.getDrawable(0)); }
-			
+
 			styledAttr.recycle();
-			return divider;			
+			return divider;
 		}
 		private View newView() {
-			return getLayoutInflater().inflate(android.R.layout.simple_spinner_dropdown_item, null);
+			return getLayoutInflater().inflate(R.layout.navigation_spinner_item, null);
 		}
 		protected void bindView(View view, int position) {
 			String text;
@@ -120,15 +119,25 @@ public class SpreadsheetActivity extends FragmentActivity {
 			// Cannot switch/case on a long:
 			if (id == ID_GO_TO_LATEST) {
 				text = getResources().getString(R.string.menu_goto_latest_title);
-			} else if (id == ID_GO_TO_MONTH) { 
+			} else if (id == ID_GO_TO_MONTH) {
 				text = getResources().getString(R.string.menu_goto_month_title);
 			} else if (id == ID_DIVIDER) {
 				throw new RuntimeException("Cannot bind data to divider view");
-			} else { 
+			} else {
 				int month = (int) id;
 				text = DateFormatSymbols.getInstance().getMonths()[MonthsElapsedCalculator.getMonth(month)] + " " + MonthsElapsedCalculator.getYear(month);
 			}
-			((TextView) view.findViewById(android.R.id.text1)).setText(text);
+			TextView textview = (TextView) view.findViewById(android.R.id.text1);
+			if (position == this.getPositionForMonth(pagerAdapter.getMonthId(pager.getCurrentItem()))) {
+				textview.setTypeface(textview.getTypeface(), Typeface.BOLD);
+			} else {
+				// Need to use a null typeface here. If we use textview.getTypeface, it might
+				// already have the BOLD flag specified (if this is a converted view that used
+				// to be a "current month" view), which setTypeface won't overrule
+				textview.setTypeface(null, Typeface.NORMAL);
+			}
+
+			textview.setText(text);
 		}
 		@Override
 		public View getDropDownView(int position, View convertView, ViewGroup parent) {
@@ -164,10 +173,12 @@ public class SpreadsheetActivity extends FragmentActivity {
 		public boolean hasStableIds() { return true; }
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-			return getDropDownView(position, convertView, parent);
+			View view = getDropDownView(position, convertView, parent);
+			((TextView) view).setTypeface(null, Typeface.NORMAL);
+			return view;
 		}
 	}
-	
+
 	private class NavigationListener implements OnPageChangeListener, OnNavigationListener {
 		private boolean inhibited = false;
 		protected void inhibit() { inhibited = true; }
@@ -180,7 +191,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 					navigationAdapter.notifyDataSetChanged();
 					getActionBar().setSelectedNavigationItem(navigationAdapter.getPositionForMonth(monthId));
 				} finally {
-					// Need to release asynchronously because calling setCurrentItem and notifyDataSetChanged will 
+					// Need to release asynchronously because calling setCurrentItem and notifyDataSetChanged will
 					// (asynchronously) refresh the UI and cause calls to their respective listeners. Therefore, simply
 					// releasing the lock would result in an infinite loop.
 					// When posting this runnable, any posts from setting the pager page and refreshing the spinner data
@@ -202,10 +213,10 @@ public class SpreadsheetActivity extends FragmentActivity {
 			} else if (itemId == NavigationAdapter.ID_GO_TO_MONTH) {
 				// Fake a move so that the drop down view won't show "go to month" as selected
 				moveToPosition(pagerAdapter.getMonthId(pager.getCurrentItem()));
-				SelectMonthDialog fragment = SelectMonthDialog.newInstance(MonthsElapsedCalculator.getMonth(pagerAdapter.getEarliest()), 
+				SelectMonthDialog fragment = SelectMonthDialog.newInstance(MonthsElapsedCalculator.getMonth(pagerAdapter.getEarliest()),
 						MonthsElapsedCalculator.getYear(pagerAdapter.getEarliest()),
 						MonthsElapsedCalculator.getMonth(pagerAdapter.getMonthId(pager.getCurrentItem())),
-						MonthsElapsedCalculator.getYear(pagerAdapter.getMonthId(pager.getCurrentItem())));	
+						MonthsElapsedCalculator.getYear(pagerAdapter.getMonthId(pager.getCurrentItem())));
 				fragment.setDialogListener(new DialogListener() {
 					@Override
 					public void onDialogPositiveClick(DialogFragment dialog, int month, int year) {
@@ -213,9 +224,9 @@ public class SpreadsheetActivity extends FragmentActivity {
 					}
 					@Override
 					public void onDialogNegativeClick(DialogFragment dialog, int month, int year) {
-					}			
+					}
 				});
-				fragment.show(getSupportFragmentManager(), "gotomonth");
+				fragment.show(getSupportFragmentManager(), SelectMonthDialog.class.getSimpleName());
 			} else if (itemId == NavigationAdapter.ID_GO_TO_LATEST) {
 				moveToPosition(pagerAdapter.getLatest());
 			}
@@ -232,18 +243,18 @@ public class SpreadsheetActivity extends FragmentActivity {
 		public void onPageSelected(int position) {
 			moveToPosition(pagerAdapter.getMonthId(position));
 		}
-		
+
 	}
 	protected class MonthPagerAdapter extends FragmentStatePagerAdapter {
 		/**
 		 * Number of elapsed months since January 1970 for the earliest month
-		 * found in the database. This counts partial months as well, i.e. 
+		 * found in the database. This counts partial months as well, i.e.
 		 * for January 1970 itself, this will evaluate to 1.
 		 * The actual query to the db is deferred until the first call of
 		 * {@link getEarliest}.
 		 */
 		private int earliest = 0;
-		
+
 		public MonthPagerAdapter(FragmentManager fragmentManager) {
 			super(fragmentManager);
 		}
@@ -261,17 +272,17 @@ public class SpreadsheetActivity extends FragmentActivity {
 			Calendar c = Calendar.getInstance();
 			int monthsTillNow = MonthsElapsedCalculator.getMonthsElapsed(c.get(Calendar.MONTH), c.get(Calendar.YEAR));
 			return monthsTillNow - getEarliest() + 1; // +1: page index is zero-based
-		}	
-		
+		}
+
 		public int getIndex(int monthId) {
 			return monthId - getEarliest();
 		}
 		public int getMonthId(int index) {
 			return getEarliest() + index;
 		}
-		
+
 		/**
-		 * Returns the number of elapsed months since January 1970 (the month id) for the earliest 
+		 * Returns the number of elapsed months since January 1970 (the month id) for the earliest
 		 * entry found in the entries table. If the entries table is empty, the returned
 		 * value will return the number of elapsed months since January 1970 up to <i>now</i>.
 		 * <br><br>
@@ -282,17 +293,17 @@ public class SpreadsheetActivity extends FragmentActivity {
 		 */
 		public int getEarliest() {
 			if (earliest == 0) {
-				Cursor cursor = getContentResolver().query(MonthContract.CONTENT_URI, 
-						new String[] { "MIN(" + MonthContract._ID + ") AS " + MonthContract._ID }, 
-						null, 
-						null, 
+				Cursor cursor = getContentResolver().query(MonthContract.CONTENT_URI,
+						new String[] { "MIN(" + MonthContract._ID + ") AS " + MonthContract._ID },
+						null,
+						null,
 						null);
-				if (cursor.moveToFirst() && 
+				if (cursor.moveToFirst() &&
 						!cursor.isNull(cursor.getColumnIndex(MonthContract._ID))) { // In an empty table, cursor contains only a single null entry
-					earliest = cursor.getInt(cursor.getColumnIndex(MonthContract._ID));									
-				} else {				
+					earliest = cursor.getInt(cursor.getColumnIndex(MonthContract._ID));
+				} else {
 					Calendar calendar = Calendar.getInstance();
-					earliest = MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR)); 
+					earliest = MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR));
 				}
 				cursor.close();
 			}
@@ -306,7 +317,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 	private MonthPagerAdapter pagerAdapter;
 	private NavigationAdapter navigationAdapter;
 	private NavigationListener navigationListener = new NavigationListener();
-	
+
 	/**
 	 * Converts the month id from a content URI into a page number for the pager adapter.
 	 * No checks on the passed URI are made, the passed parameter is expected to contain an appropriate URI!
@@ -317,49 +328,49 @@ public class SpreadsheetActivity extends FragmentActivity {
 		int page = pagerAdapter.getIndex(((int) ContentUris.parseId(uri)));
 		return page;
 	}
-	
+
 	@Override
 	protected void onNewIntent(Intent intent) {
 		setIntent(intent);
-		
+
 		Uri uri = intent.getData();
 		if (uri != null && (LedgerContentProvider.URI_MATCHER.match(uri) == LedgerContentProvider.URI_MONTHS_ID)) {
 			pager.setCurrentItem(getPageFromURI(uri));
 		}
 	}
-	
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.actvy_spreadsheet);
-		
+
 		getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
-		navigationAdapter = new NavigationAdapter(this,android.R.layout.simple_spinner_item);
-		
+		navigationAdapter = new NavigationAdapter();
+
 		pager = (ViewPager) findViewById(R.id.viewpager);
-		pagerAdapter = new MonthPagerAdapter(getSupportFragmentManager()); 
-		pager.setAdapter(pagerAdapter);		
+		pagerAdapter = new MonthPagerAdapter(getSupportFragmentManager());
+		pager.setAdapter(pagerAdapter);
 		pager.setOnPageChangeListener(navigationListener);
-		
+
 		// Figure out which page to display in the view pager.
 		// 1. If the intent contains a content URI pointing to a month id, display that month
 		// 2. Alternately, if the savedInstanceState contains a month id, display that month
-		// 3. Per default, show the latest month		
+		// 3. Per default, show the latest month
 		int page;
 		Uri uri = getIntent().getData();
 		if (uri != null && (LedgerContentProvider.URI_MATCHER.match(uri) == LedgerContentProvider.URI_MONTHS_ID)) {
-			page = getPageFromURI(uri); 
+			page = getPageFromURI(uri);
 		} else if (savedInstanceState != null && savedInstanceState.containsKey(ARG_MONTH_ID)) {
 			page = pagerAdapter.getIndex(savedInstanceState.getInt(ARG_MONTH_ID));
 		} else {
 			page = pagerAdapter.getLatest(); // Display the latest month
 		}
-		
+
 		getActionBar().setListNavigationCallbacks(navigationAdapter, navigationListener);
 
 		pager.setCurrentItem(page);
 	}
-	
+
 	@Override
 	protected void onSaveInstanceState(Bundle out) {
 		int monthId = pagerAdapter.getMonthId(pager.getCurrentItem());
@@ -377,7 +388,7 @@ public class SpreadsheetActivity extends FragmentActivity {
 		startActivity(intent);
 		return true;
 	}
-	
+
 	public boolean onManageCategoriesClick(MenuItem menu) {
 		Intent intent = new Intent(this, CategoriesActivity.class);
 		startActivity(intent);

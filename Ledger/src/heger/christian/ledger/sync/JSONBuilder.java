@@ -9,9 +9,9 @@ import org.json.JSONObject;
  * are applicable for the operation type in question are reflected in the built output.
  */
 public abstract class JSONBuilder {
-	public static final String JSON_FIELD_TABLE = "table";
+	public static final String JSON_FIELD_TABLE = "table_name";
 	public static final String JSON_FIELD_ROW = "row";
-	public static final String JSON_FIELD_COLUMN = "column";
+	public static final String JSON_FIELD_COLUMN = "column_name";
 	public static final String JSON_FIELD_DATA = "data";
 	public static final String JSON_FIELD_REVISION = "revision";
 

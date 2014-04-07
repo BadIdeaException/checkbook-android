@@ -70,7 +70,7 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
-public class EntryActivity extends Activity implements OnRuleMatchingCompleteListener, LoaderCallbacks<Cursor> {	
+public class EntryActivity extends Activity implements OnRuleMatchingCompleteListener, LoaderCallbacks<Cursor> {
 	private EditText editCaption;
 	private Switch switchEarningExpense;
 	private EditText editValue;
@@ -80,21 +80,21 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 	private EditText editDetails;
 	private TextView txtSaveHint;
 	private Button btnSave;
-	
+
 	/**
 	 * The adapter for the categories spinner
 	 */
-	private CursorAdapter adapter;	
+	private CursorAdapter adapter;
 
 	/**
-	 * Holds the currently set date/time for the new entry. 
+	 * Holds the currently set date/time for the new entry.
 	 */
 	private Calendar calendar;
-	
+
 	private boolean userChosenCategory = false;
 	/* Guard flag to suppress spinner's OnItemSelectedListener from processing code-generated selections */
 	private boolean suppressSpinnerListener = false;
-	
+
 	private AsyncRuleMatcher matcher;
 	private RuleApplicationTextWatcher ruleApplicationWatcher;
 
@@ -110,28 +110,28 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		Cursor cursor = ((SimpleCursorAdapter) spinCategory.getAdapter()).getCursor();
 		int colIndex = cursor.getColumnIndex(CategoryContract._ID);
 		cursor.moveToPosition(-1);
-		while (cursor.moveToNext()) 
+		while (cursor.moveToNext())
 			if (cursor.getLong(colIndex) == id) {
 				suppressSpinnerListener = true;
 				spinCategory.setSelection(cursor.getPosition());
 				break;
-			} 		
+			}
 	}
-	
+
 	private long getSelectedCategory() {
 		Cursor cursor = ((SimpleCursorAdapter) spinCategory.getAdapter()).getCursor();
 		cursor.moveToPosition(spinCategory.getSelectedItemPosition());
 		return cursor.getLong(cursor.getColumnIndex(CategoryContract._ID));
 	}
-	
+
 	private void updateDateTimeButtons() {
 		btnDate.setText(DateFormat.getDateFormat(this).format(calendar.getTime()));
-		btnTime.setText(DateFormat.getTimeFormat(this).format(calendar.getTime()));	
+		btnTime.setText(DateFormat.getTimeFormat(this).format(calendar.getTime()));
 	}
-	
+
 	private void updateSaveButton() {
 		// Save button is enabled only if a value has been entered
-		// Hint textview will warn (prioritized as below) if 
+		// Hint textview will warn (prioritized as below) if
 		// 1. no value is entered
 		// 2. the value entered is zero
 		// 3. caption is empty
@@ -153,18 +153,14 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		txtSaveHint.setText("");
 		btnSave.setEnabled(true);
 	}
-	
+
 	@Override
 	protected void onSaveInstanceState(Bundle state) {
 		super.onSaveInstanceState(state);
-//		state.putString(EntryContract.COL_NAME_CAPTION, editCaption.getText().toString());
-//		state.putInt(EntryContract.COL_NAME_VALUE, getValue());
-//		state.putLong(EntryContract.COL_NAME_CATEGORY, getSelectedCategory());
-//		state.putString(EntryContract.COL_NAME_DETAILS, editDetails.getText().toString());
 		state.putString(EntryContract.COL_NAME_DATETIME, new SQLDateFormat().format(calendar.getTime()));
 		state.putBoolean(EntryMetadataContract.COL_NAME_USER_CHOSEN_CATEGORY, userChosenCategory);
 	}
-	
+
 	// Step 2a of setting up the UI. Load entry asynchronously.
 	private void loadEntry(Uri uri) {
 		final Bundle bundle = new Bundle();
@@ -173,7 +169,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 			@Override
 			public void onQueryComplete(int token, Object cookie, Cursor cursor) {
 				if (cursor != null && cursor.moveToFirst()) {
-					if (token == 0) {	
+					if (token == 0) {
 						bundle.putString(EntryContract.COL_NAME_CAPTION, cursor.getString(cursor.getColumnIndex(EntryContract.COL_NAME_CAPTION)));
 						bundle.putInt(EntryContract.COL_NAME_VALUE, cursor.getInt(cursor.getColumnIndex(EntryContract.COL_NAME_VALUE)));
 						bundle.putLong(EntryContract.COL_NAME_CATEGORY, cursor.getLong(cursor.getColumnIndex(EntryContract.COL_NAME_CATEGORY)));
@@ -189,33 +185,11 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 			}
 		};
 		query.startQuery(0, null, uri, null, null, null, null);
-		query.startQuery(1, null, 
-				ContentUris.withAppendedId(EntryMetadataContract.CONTENT_URI, ContentUris.parseId(uri)), 
+		query.startQuery(1, null,
+				ContentUris.withAppendedId(EntryMetadataContract.CONTENT_URI, ContentUris.parseId(uri)),
 				null, null, null, null);
 	}
-//			protected void onPreExecute() {
-//				// Create a semi-transparent overlay to show the progress bar
-//				overlay = new FrameLayout(EntryActivity.this);
-//				
-//				ProgressBar progressBar = new ProgressBar(EntryActivity.this);				
-//				overlay.setClickable(true);
-//				overlay.setBackgroundColor(getResources().getColor(R.color.transparent_white));
-//				overlay.addView(progressBar);
-//				FrameLayout.LayoutParams lp = (LayoutParams) progressBar.getLayoutParams();
-//				lp.width= Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100f, getResources().getDisplayMetrics()));
-//				lp.height=Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100f, getResources().getDisplayMetrics()));
-//				lp.gravity = 0x11;
-//				EntryActivity.this.addContentView(overlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-//			}
-//			@Override
-//			protected void onPostExecute(Object[] result) {
-//				// Remove progress overlay
-//				((ViewGroup) overlay.getParent()).removeView(overlay);
-//				
-//				userChosenCategory = (Boolean) result[1];
-//				populateUI((EntryParameterObject) result[0]);
-//			}
-		
+
 	protected void fillUI(final Bundle bundle) {
 		if (bundle.containsKey(EntryContract.COL_NAME_CAPTION)) {
 			// Temporarily remove the RuleApplicationTextWatcher to keep it from
@@ -245,7 +219,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 			}
 			updateDateTimeButtons();
 		}
-		if (bundle.containsKey(EntryContract.COL_NAME_DETAILS)) 
+		if (bundle.containsKey(EntryContract.COL_NAME_DETAILS))
 			editDetails.setText(bundle.getString(EntryContract.COL_NAME_DETAILS));
 		if (bundle.containsKey(EntryContract.COL_NAME_CATEGORY)) {
 			// If categories are already loaded, set selection, otherwise defer call
@@ -257,7 +231,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 					public void run() {
 						if (adapter.getCursor() != null) {
 							setSelectedCategory(bundle.getLong(EntryContract.COL_NAME_CATEGORY));
-						} else 
+						} else
 							spinCategory.post(this);
 					}
 				});
@@ -281,12 +255,12 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		editDetails = (EditText) findViewById(R.id.edit_details);
 		txtSaveHint = (TextView) findViewById(R.id.txt_save_hint);
 		btnSave = (Button) findViewById(R.id.btn_save);
-		
-		adapter = new SimpleCursorAdapter(EntryActivity.this, 
-				android.R.layout.simple_spinner_item, 
-				null, 
-				new String[] { CategoryContract.COL_NAME_CAPTION } , 
-				new int[] { android.R.id.text1 }, 
+
+		adapter = new SimpleCursorAdapter(EntryActivity.this,
+				android.R.layout.simple_spinner_item,
+				null,
+				new String[] { CategoryContract.COL_NAME_CAPTION } ,
+				new int[] { android.R.id.text1 },
 				0) {
 			@Override
 			public long getItemId(int position) {
@@ -296,49 +270,49 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 			}
 		};
 		spinCategory.setAdapter(adapter);
-		getLoaderManager().initLoader(0, null, this); 			
-				
+		getLoaderManager().initLoader(0, null, this);
+
 		// Attach text watcher to caption edit to toggle enabled state of the save button
-		editCaption.addTextChangedListener(new TextWatcher() {			
+		editCaption.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				updateSaveButton();
 			}
 			@Override
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}			
+			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 			@Override
 			public void afterTextChanged(Editable s) {}
 		});
-		
+
 		// Attach text watcher to value edit to toggle enabled state of the save button
-		editValue.addTextChangedListener(new TextWatcher() {			
+		editValue.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				updateSaveButton();
 			}
 			@Override
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}			
+			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 			@Override
 			public void afterTextChanged(Editable s) {}
 		});
-		// Make the value edit field accept digits as well as the currency symbol, the monetary decimal separator, 
+		// Make the value edit field accept digits as well as the currency symbol, the monetary decimal separator,
 		// the grouping separator and breaking and non-breaking spaces
 		// Otherwise it will reject the formatting made by the CurrencyFormattingTextWatcher
-		editValue.setKeyListener(DigitsKeyListener.getInstance("0123456789" + 
+		editValue.setKeyListener(DigitsKeyListener.getInstance("0123456789" +
 				((DecimalFormat) NumberFormat.getCurrencyInstance()).getDecimalFormatSymbols().getCurrencySymbol() +
 				((DecimalFormat) NumberFormat.getCurrencyInstance()).getDecimalFormatSymbols().getMonetaryDecimalSeparator() +
 				((DecimalFormat) NumberFormat.getCurrencyInstance()).getDecimalFormatSymbols().getGroupingSeparator() +
 				" \u00A0"));
-		
+
 		// Attach text watcher to format entered values into currency output on the fly
-		editValue.addTextChangedListener(new CurrencyFormattingTextWatcher());		
+		editValue.addTextChangedListener(new CurrencyFormattingTextWatcher());
 
 		ruleApplicationWatcher = new RuleApplicationTextWatcher();
 		matcher = new AsyncRuleMatcher(getContentResolver());
 		matcher.setOnRuleMatchingCompleteListener(this);
 		ruleApplicationWatcher.setRuleMatcher(matcher);
 		editCaption.addTextChangedListener(ruleApplicationWatcher);
-		
+
 		spinCategory.setOnItemSelectedListener(new OnItemSelectedListener() {
 			@Override
 			public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -349,16 +323,16 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 			@Override
 			public void onNothingSelected(AdapterView<?> parent) {
 			}
-		});		
+		});
 
 		calendar = Calendar.getInstance();
 		updateDateTimeButtons();
 		if (savedInstanceState == null && getIntent().getData() != null) {
 			// Read entry from storage if URI present
 			loadEntry(getIntent().getData());
-		} else if (savedInstanceState == null 
-				&& getIntent().getData() == null  
-				&& getIntent().getExtras() != null 
+		} else if (savedInstanceState == null
+				&& getIntent().getData() == null
+				&& getIntent().getExtras() != null
 				&& !getIntent().getExtras().isEmpty()) {
 			// Make entry from extras, if present
 			fillUI(getIntent().getExtras());
@@ -370,7 +344,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		// Show the Up button in the action bar.
 		setupActionBar();
 	}
-	
+
 	/**
 	 * Set up the {@link android.app.ActionBar}.
 	 */
@@ -381,7 +355,6 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-//		getMenuInflater().inflate(R.menu.entry, menu);
 		return true;
 	}
 
@@ -401,16 +374,16 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		}
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	public void onCancelClick(View v) {
 		NavUtils.navigateUpFromSameTask(this);
 	}
-	
+
 	private int getValue() {
-		int sign = ((Switch) switchEarningExpense).isChecked() ? +1 : -1;
+		int sign = switchEarningExpense.isChecked() ? +1 : -1;
 		return sign * CurrencyValueFormatter.parseLenient(editValue.getText().toString());
 	}
-	
+
 	public void onSaveClick(View v) {
 		final ContentValues entryValues = new ContentValues();
 		entryValues.put(EntryContract.COL_NAME_CAPTION, editCaption.getText().toString());
@@ -419,17 +392,17 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		entryValues.put(EntryContract.COL_NAME_VALUE, getValue());
 		// Store the selected category:
 		entryValues.put(EntryContract.COL_NAME_CATEGORY, getSelectedCategory());
-		
+
 		final ContentValues entryMetadataValues = new ContentValues();
 		entryMetadataValues.put(EntryMetadataContract.COL_NAME_USER_CHOSEN_CATEGORY, userChosenCategory);
-		
+
 		// Prepare an intent for going back to the spreadsheet to the month we've just inserted to
-		final Intent intent = new Intent(Intent.ACTION_VIEW, 
+		final Intent intent = new Intent(Intent.ACTION_VIEW,
 				ContentUris.withAppendedId(MonthContract.CONTENT_URI, MonthsElapsedCalculator.getMonthsElapsed(calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR))),
-				this, 
+				this,
 				SpreadsheetActivity.class);
 
-		Uri uri = getIntent().getData();		
+		Uri uri = getIntent().getData();
 		if (uri != null) {
 			// URI present - this is an update on an existing entry
 			AsyncQueryHandler query = new AsyncQueryHandler(getContentResolver()) {
@@ -459,7 +432,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 							@Override
 							public void onSuccess() {
 								// New keys are available, try again
-								startInsert(0, null, EntryContract.CONTENT_URI, entryValues);							
+								startInsert(0, null, EntryContract.CONTENT_URI, entryValues);
 							}
 							@Override
 							public void onFailure() {}
@@ -468,11 +441,11 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 					}
 				}
 			}.startInsert(0, null, EntryContract.CONTENT_URI, entryValues);
-		}		
+		}
 	}
-	
+
 	public void onDateClick(View v) {
-		DatePickerDialog dlg = new DatePickerDialog(this, new OnDateSetListener() {					
+		DatePickerDialog dlg = new DatePickerDialog(this, new OnDateSetListener() {
 			@Override
 			public void onDateSet(DatePicker picker, int year, int month, int day) {
 				calendar.set(year, month, day);
@@ -489,12 +462,12 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 				calendar.set(Calendar.HOUR, hour);
 				calendar.set(Calendar.MINUTE, minute);
 				updateDateTimeButtons();
-			}					
-		}, 
-		calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), DateFormat.is24HourFormat(this));		
-		dlg.show();	
+			}
+		},
+		calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), DateFormat.is24HourFormat(this));
+		dlg.show();
 	}
-	
+
 	@Override
 	public void onRuleMatchingComplete(final Map<Integer,Integer> matchResult) {
 		String matches = "[ ";
@@ -508,41 +481,41 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 		// Do not override user choices
 		if (userChosenCategory)
 			return;
-		
+
 		// Do not change the category if the currently selected one is in the match result set
-		if (matchResult.containsKey(getSelectedCategory())) 
+		if (matchResult.containsKey(getSelectedCategory()))
 			return;
-		
-		// If the result contains only one match, that means only one category follows from the 
+
+		// If the result contains only one match, that means only one category follows from the
 		// caption. Set the spinner to that category and display a toast to the user
 		if (matchResult.size() == 1) {
 			// Set spinner
 			int categoryID = matchResult.keySet().iterator().next();
 			setSelectedCategory(categoryID);
 			userChosenCategory = false;
-			
+
 			// Prepare toast
 			Cursor cursor = ((SimpleCursorAdapter) spinCategory.getAdapter()).getCursor();
-			cursor.moveToPosition(spinCategory.getSelectedItemPosition());			
-			String toastString = String.format(getResources().getString(R.string.toast_category_set), 
+			cursor.moveToPosition(spinCategory.getSelectedItemPosition());
+			String toastString = String.format(getResources().getString(R.string.toast_category_set),
 					cursor.getString(cursor.getColumnIndex(CategoryContract.COL_NAME_CAPTION)));
 			Toast toast = Toast.makeText(this, toastString, Toast.LENGTH_SHORT);
 			toast.show();
 		}
-				
+
 		// There were multiple matches. Let the user choose one of them.
 		if (matchResult.size() > 1) {
-			// Filter from the categories cursor all the categories that are in the match result 
+			// Filter from the categories cursor all the categories that are in the match result
 			class ResultAdapter extends FilteringAdapter {
-				CursorAccessHelper helper;				
+				CursorAccessHelper helper;
 				public ResultAdapter(Adapter adapter) {
 					super(adapter);
 					helper = new CursorAccessHelper(((CursorAdapter) getAdapter()).getCursor());
 				}
 				@Override
-				public boolean filter(int position) {							
+				public boolean filter(int position) {
 					helper.getCursor().moveToPosition(position);
-					return matchResult.containsKey(helper.getInt(CategoryContract._ID));						
+					return matchResult.containsKey(helper.getInt(CategoryContract._ID));
 				}
 				@Override
 				public long getItemId(int position) {
@@ -551,16 +524,16 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 				}
 			}
 			// Create cursor adapter for the selection list that is backed by the spinner's cursor
-			SimpleCursorAdapter cursorAdapter = new SimpleCursorAdapter(this, 
-					android.R.layout.simple_list_item_1, 
-					((CursorAdapter) spinCategory.getAdapter()).getCursor(), 
-					new String[] { CategoryContract.COL_NAME_CAPTION }, 
+			SimpleCursorAdapter cursorAdapter = new SimpleCursorAdapter(this,
+					android.R.layout.simple_list_item_1,
+					((CursorAdapter) spinCategory.getAdapter()).getCursor(),
+					new String[] { CategoryContract.COL_NAME_CAPTION },
 					new int[] { android.R.id.text1 }, 0);
 			// Filter that adapter
 			final ResultAdapter adapter = new ResultAdapter(cursorAdapter);
 
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setAdapter(adapter, new OnClickListener() {				
+			builder.setAdapter(adapter, new OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
 					setSelectedCategory((int) adapter.getItemId(which));
@@ -571,7 +544,7 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 			builder.create().show();
 		}
 	}
-	
+
 	public void onGuessCategoryClick(View view) {
 		userChosenCategory = false;
 		matcher.matchStrict(editCaption.getText().toString());
@@ -586,26 +559,26 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 
 	@Override
 	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-		
+
 			// If the database contains no categories yet, this whole exercise will not make much sense, because
 			// the entry could never be inserted into the database without a category.
 			// Therefore, test for this case and present the user with an option to go directly to
 			// the category management screen if the cursor is empty
 			if (data.getCount() == 0) {
-				DialogFragment dialog = new DialogFragment() {
+				final DialogFragment dialog = new DialogFragment() {
 					@Override
 					public Dialog onCreateDialog(Bundle savedInstance) {
 						return new AlertDialog.Builder(EntryActivity.this)
 						.setMessage(R.string.dlg_no_categories_message)
-						.setPositiveButton(R.string.yes, new OnClickListener() {					
+						.setPositiveButton(R.string.yes, new OnClickListener() {
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
-								Intent intent = new Intent(Intent.ACTION_VIEW, 
-										null, 
+								Intent intent = new Intent(Intent.ACTION_VIEW,
+										null,
 										EntryActivity.this, CategoriesActivity.class);
 								startActivity(intent);
 							}
-						}).setNegativeButton(R.string.no, new OnClickListener() {					
+						}).setNegativeButton(R.string.no, new OnClickListener() {
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
 								onCancelClick(null);
@@ -613,10 +586,20 @@ public class EntryActivity extends Activity implements OnRuleMatchingCompleteLis
 						}).create();
 					}
 				};
-				dialog.show(getFragmentManager(), getClass().getCanonicalName() + ".NoCategoriesDialog");
-			} else { 
+				// Can't call dialog.show directly here, it will result in an IllegalStateException.
+				// The reason is that the Loader callback might fire when the activity has already
+				// saved its state and is en route to be stopped/destroyed.
+				// Posting to the UI thread ensures that the dialog fragment is shown even if the
+				// loader finishes while the activity is not visible.
+				spinCategory.post(new Runnable() {
+					@Override
+					public void run() {
+						dialog.show(getFragmentManager(), getClass().getCanonicalName() + ".NoCategoriesDialog");
+					}
+				});
+			} else {
 				adapter.swapCursor(data);
-			}		
+			}
 	}
 
 	@Override

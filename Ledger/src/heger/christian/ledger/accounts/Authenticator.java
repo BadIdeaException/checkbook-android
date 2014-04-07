@@ -38,12 +38,10 @@ public class Authenticator extends AbstractAccountAuthenticator {
 		final Intent intent = new Intent(context, LoginActivity.class);
 		intent.putExtra(LoginActivity.ARG_ADD_ACCOUNT, true);
 	    intent.putExtra(LoginActivity.ARG_ACCOUNT_TYPE, accountType);
-//	    intent.putExtra(LoginActivity.ARG_AUTH_TYPE, authTokenType);
-//	    intent.putExtra(LoginActivity.ARG_IS_ADDING_NEW_ACCOUNT, true);
 	    intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
 	    final Bundle bundle = new Bundle();
 	    bundle.putParcelable(AccountManager.KEY_INTENT, intent);
-	    return bundle;
+		return bundle;
 	}
 
 	@Override

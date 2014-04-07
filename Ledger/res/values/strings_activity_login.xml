@@ -15,5 +15,5 @@
     <string name="err_password_required">You have to provide a password</string>
     <string name="err_username_and_password_required">You have to provide a user name and a password</string>
     <string name="err_network_error">There was a network error during the procedure. Please try again later.</string>
-
+	<string name="err_too_many_accounts">Only one account is permitted currently. Future releases may bring multi account support.</string>
 </resources>

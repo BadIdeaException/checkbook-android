@@ -65,12 +65,6 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 
 		// Set up the login form
 		editUser = (EditText) findViewById(R.id.edit_user);
-		if (!getIntent().getBooleanExtra(ARG_ADD_ACCOUNT, false)) {
-			Account account = getIntent().getParcelableExtra(ARG_ACCOUNT);
-			username = account.name;
-			editUser.setText(username);
-		}
-
 		editPassword = (EditText) findViewById(R.id.edit_password);
 		editPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 			@Override
@@ -85,6 +79,19 @@ public class LoginActivity extends AccountAuthenticatorActivity {
 
 		txtStatus = (TextView) findViewById(R.id.txt_status);
 
+		if (!getIntent().getBooleanExtra(ARG_ADD_ACCOUNT, false)) {
+			Account account = getIntent().getParcelableExtra(ARG_ACCOUNT);
+			username = account.name;
+			editUser.setText(username);
+		} else {
+			if (AccountManager.get(this).getAccountsByType(getIntent().getStringExtra(ARG_ACCOUNT_TYPE)).length > 0) {
+				editUser.setEnabled(false);
+				editPassword.setEnabled(false);
+				findViewById(R.id.btn_sign_in).setEnabled(false);
+				txtStatus.setText(R.string.err_too_many_accounts);
+				txtStatus.setVisibility(View.VISIBLE);
+			}
+		}
 		viewLoginForm = findViewById(R.id.login_form);
 		viewLoginStatus = findViewById(R.id.login_status);
 		txtLoginStatusMessage = (TextView) findViewById(R.id.login_status_message);

@@ -155,8 +155,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 					.ensureSuccess()
 					.asJsonObject();
 		} catch (WebbException x) {
-			if (x.getResponse() != null && x.getResponse().getStatusCode() == HttpsURLConnection.HTTP_FORBIDDEN) {
+			if (x.getResponse() != null && x.getResponse().getStatusCode() == HttpsURLConnection.HTTP_UNAUTHORIZED) {
 				syncResult.stats.numAuthExceptions++;
+				AccountManager.get(getContext()).invalidateAuthToken(account.type, token);
 				return;
 			} else {
 				syncResult.stats.numIoExceptions++;

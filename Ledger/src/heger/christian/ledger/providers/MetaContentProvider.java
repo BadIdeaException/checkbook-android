@@ -16,7 +16,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 
 /**
  * This content provider provides access to the metadata associated with the database, as there are
@@ -102,22 +101,17 @@ public class MetaContentProvider extends ContentProvider {
 	/* package private */ SQLiteOpenHelper dbHelper;
 
 	protected SQLiteOpenHelper getHelper() {
-		String TAG = "MetaContentProvider";
-		Log.d(TAG, "Getting helper for context " + getContext());
 		if (dbHelper == null) {
 			try {
 				LedgerContentProvider buddy = (LedgerContentProvider) getContext().getContentResolver().acquireContentProviderClient(LedgerContentProvider.AUTHORITY).getLocalContentProvider();
-				Log.d(TAG, "Found buddy " + buddy);
 				if (buddy.dbHelper != null) {
 					dbHelper = buddy.dbHelper;
-					Log.d(TAG, "Found dbHelper from buddy " + dbHelper);
 				}
 			} catch (ClassCastException x /* Wasn't a MetaContentProvider */) {
 			} catch (NullPointerException x /* One of the involved objects is unavailable */) {
 			}
 		}
 		if (dbHelper == null) {
-			Log.d(TAG, "Helper unavailable, creating new");
 			dbHelper = new LedgerDbHelper(getContext());
 		}
 		return dbHelper;

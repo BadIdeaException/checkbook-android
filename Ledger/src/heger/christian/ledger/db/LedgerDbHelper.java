@@ -10,8 +10,6 @@ import android.provider.BaseColumns;
  * multiple content providers accessing the same database.
  */
 public class LedgerDbHelper extends SQLiteOpenHelper {
-	public static final String DEFAULT_PRAGMA_FOREIGN_KEYS = "ON";
-
 	public static abstract class MonthContract extends heger.christian.ledger.providers.MonthContract {
 		protected static final String SQL_CREATE =
 				"create view " + TABLE_NAME + " as " +
@@ -34,10 +32,10 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 				COL_NAME_CAPTION + " text," +
 				COL_NAME_VALUE + " integer not null," +
 				COL_NAME_DETAILS + " text," +
-				COL_NAME_CATEGORY + " not null," +
+				COL_NAME_CATEGORY + " integer not null," +
 				"foreign key (" + COL_NAME_CATEGORY + ") references " +
 					CategoryContract.TABLE_NAME + "(" + CategoryContract._ID + ") " +
-					"on update cascade on delete cascade);";
+					"on update cascade on delete cascade deferrable initially deferred);";
 
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
@@ -51,7 +49,7 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 				COL_NAME_USER_CHOSEN_CATEGORY + "," +
 				"foreign key (" + _ID + ") references " +
 					EntryContract.TABLE_NAME + "(" + EntryContract._ID + ") " +
-					"on update cascade on delete cascade);";
+					"on update cascade on delete cascade deferrable initially deferred);";
 
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
@@ -74,10 +72,10 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 				"create table " + TABLE_NAME + " (" +
 				BaseColumns._ID + " integer primary key," +
 				COL_NAME_ANTECEDENT + " text," +
-				COL_NAME_CONSEQUENT + " not null," +
+				COL_NAME_CONSEQUENT + " integer not null," +
 				"foreign key (" + COL_NAME_CONSEQUENT + ") references " +
 					CategoryContract.TABLE_NAME + "(" + CategoryContract._ID + ") " +
-					"on update cascade on delete cascade);";
+					"on update cascade on delete cascade deferrable initially deferred);";
 
 		public static void createTable(SQLiteDatabase db) {
 			db.execSQL(SQL_CREATE);
@@ -116,8 +114,8 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 				// Target column, MAY BE EMPTY for creation and deletion operations
 				COL_NAME_COLUMN + " text, " +
 				// Operation type, may be one of C, U, D
-				COL_NAME_OPERATION + " char not null check (lower(" + COL_NAME_OPERATION + ") = \"c\"" +
-				"or lower(" + COL_NAME_OPERATION + ") = \"u\" or lower(" + COL_NAME_OPERATION + ") = \"d\"));";
+				COL_NAME_OPERATION + " char not null check (lower(" + COL_NAME_OPERATION + ") in ('c','u','d')));";
+
 		protected static final String SQL_CREATE_TRIGGER =
 				// Need to check AFTER the insert - otherwise the sequence number won't be available yet
 				"create trigger ensure_valid_sequence_number after insert on " + TABLE_NAME + " " +
@@ -194,6 +192,6 @@ public class LedgerDbHelper extends SQLiteOpenHelper {
 
 	@Override
 	public void onOpen(SQLiteDatabase db) {
-		db.execSQL("PRAGMA foreign_keys = " + DEFAULT_PRAGMA_FOREIGN_KEYS);
+		db.execSQL("PRAGMA foreign_keys = on");
 	}
 }

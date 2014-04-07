@@ -4,14 +4,20 @@ import heger.christian.ledger.OutOfKeysReaction;
 import heger.christian.ledger.OutOfKeysReaction.KeyRequestResultListener;
 import heger.christian.ledger.R;
 import heger.christian.ledger.SturdyAsyncQueryHandler;
+import heger.christian.ledger.accounts.Authenticator;
 import heger.christian.ledger.providers.CategoryContract;
+import heger.christian.ledger.providers.LedgerContentProvider;
 import heger.christian.ledger.providers.OutOfKeysException;
 import heger.christian.ledger.providers.RuleContract;
 import heger.christian.ledger.ui.rules.EditRuleDialog.EditRuleDialogListener;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.animation.LayoutTransition;
 import android.app.DialogFragment;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.AsyncQueryHandler;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
@@ -30,10 +36,10 @@ import android.widget.SimpleCursorAdapter;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 import android.widget.TextView;
 
-public class RulesActivity extends ListActivity implements LoaderCallbacks<Cursor> {	
+public class RulesActivity extends ListActivity implements LoaderCallbacks<Cursor> {
 	private class AddRuleDialogListener implements EditRuleDialogListener {
 		@Override
-		public void onClose(String caption, long category) {			
+		public void onClose(String caption, long category) {
 			final Uri uri = RuleContract.CONTENT_URI;
 			final ContentValues values = new ContentValues();
 			values.put(RuleContract.COL_NAME_ANTECEDENT, caption);
@@ -47,7 +53,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 							@Override
 							public void onSuccess() {
 								// New keys are available, try again
-								startInsert(0, null, uri, values);							
+								startInsert(0, null, uri, values);
 							}
 							@Override
 							public void onFailure() {}
@@ -70,7 +76,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		@Override
 		public void onClose(String caption, long category) {
 			Uri uri = ContentUris.withAppendedId(RuleContract.CONTENT_URI, id);
-			
+
 			ContentValues values = null;
 			if (!caption.equals(this.caption)) {
 				values = new ContentValues();
@@ -84,7 +90,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 				new AsyncQueryHandler(getContentResolver()) {}.startUpdate(0, null, uri, values, null, null);
 		}
 	}
-	
+
 	private class RuleViewBinder implements ViewBinder {
 		private class RuleColumns {
 			private int caption;
@@ -122,10 +128,10 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 						((TextView) view).setText(categories.getString(categoryColumns.caption));
 						return true;
 					}
-			} 
+			}
 			return false;
 		}
-		
+
 		public void setCategories(Cursor categories) {
 			if (categories != this.categories) {
 				this.categories = categories;
@@ -138,7 +144,7 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}
 	}
 
-	private static final String LOG_TAG = RulesActivity.class.getSimpleName();	
+	private static final String LOG_TAG = RulesActivity.class.getSimpleName();
 
 	private static final int LOADER_RULES = 1;
 	private static final int LOADER_CATEGORIES = 2;
@@ -150,13 +156,15 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 	private static final String EDIT_DIALOG_TAG = EditRuleDialog.class.getCanonicalName();
 
 	private SimpleCursorAdapter adapter;
-
 	private RuleViewBinder viewBinder;
-	
+	private MenuItem menuAdd;
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.rules, menu);
+		menuAdd = menu.findItem(R.id.menu_add);
+		onDataChanged();
 		return true;
 	}
 
@@ -168,11 +176,11 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		setupActionBar();
 
 		getLoaderManager().initLoader(LOADER_CATEGORIES, null, this);
-		
-		adapter = new SimpleCursorAdapter(this, 
-				R.layout.listitem_rules, 
-				null, 
-				new String[] { RuleContract.COL_NAME_ANTECEDENT, RuleContract.COL_NAME_CONSEQUENT }, 
+
+		adapter = new SimpleCursorAdapter(this,
+				R.layout.listitem_rules,
+				null,
+				new String[] { RuleContract.COL_NAME_ANTECEDENT, RuleContract.COL_NAME_CONSEQUENT },
 				new int[] { R.id.txt_caption, R.id.txt_category }, 0) {
 			@Override
 			public long getItemId(int position) {
@@ -184,13 +192,13 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		viewBinder = new RuleViewBinder();
 		adapter.setViewBinder(viewBinder);
 
-		
-		setListAdapter(adapter);		
+		setListAdapter(adapter);
 		getLoaderManager().initLoader(LOADER_RULES, null, this);
 		ListView list = getListView();
-		list.setItemsCanFocus(true);	
+		list.setItemsCanFocus(true);
 		list.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-				
+		list.setLayoutTransition(new LayoutTransition());
+
 		// Re-created activity while a category was being edited.
 		// Reattach dialog listener
 		if (savedInstanceState != null) {
@@ -252,12 +260,12 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			}
 		}
 	}
-	
+
 	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		switch (id) {
-			case LOADER_RULES: 
-				return new CursorLoader(this, RuleContract.CONTENT_URI, null, null, null, null);				
+			case LOADER_RULES:
+				return new CursorLoader(this, RuleContract.CONTENT_URI, null, null, null, null);
 			case LOADER_CATEGORIES:
 				return new CursorLoader(this, CategoryContract.CONTENT_URI, null, null, null, null);
 			default:
@@ -265,32 +273,40 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		}
 	}
 
+	private void onDataChanged() {
+		boolean hasCategories = viewBinder.categories != null && viewBinder.categories.getCount() > 0;
+		boolean hasRules = adapter.getCount() > 0;
+		ListView list = getListView();
+		if (!hasCategories && !hasRules) {
+			// If no categories exist in the db, show a special view
+			list.setEmptyView(new FixedViewFactory(this).createNoCategoriesView());
+		} else if (!hasRules) {
+			list.setEmptyView(new FixedViewFactory(this).createEmptyView());
+		}
+		if (menuAdd != null) // May not have been inflated yet if the loaders were really quick
+			menuAdd.setEnabled(hasCategories);
+	}
+
 	@Override
 	public void onLoadFinished(Loader<Cursor> loader, final Cursor data) {
 		ListView list = getListView();
 		switch (loader.getId()) {
-			case LOADER_RULES:				
+			case LOADER_RULES:
 				adapter.swapCursor(data);
-				if (data.getCount() == 0)
-					list.setEmptyView(new FixedViewFactory(this).createEmptyView());
 				break;
 			case LOADER_CATEGORIES:
 				viewBinder.setCategories(data);
-				if (data.getCount() == 0) 
-					// If no categories exist in the db, show a special view
-					list.setEmptyView(new FixedViewFactory(this).createNoCategoriesView());				
-				else {
-					// If currently showing a dialog, update its categories
-					EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);  
-					if (dialog != null) {
-						dialog.setCategories(data);
-					}
-					// Update all visible rule views
-					for (int i = list.getFirstVisiblePosition(); i <= list.getLastVisiblePosition(); i++) 
-						adapter.bindView(list.getChildAt(i), this, adapter.getCursor());
+				// If currently showing a dialog, update its categories
+				EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
+				if (dialog != null) {
+					dialog.setCategories(data);
 				}
+				// Update all visible rule views
+				for (int i = list.getFirstVisiblePosition(); i <= list.getLastVisiblePosition(); i++)
+					adapter.bindView(list.getChildAt(i), this, adapter.getCursor());
 				break;
-		}		
+		}
+		onDataChanged();
 	}
 
 	@Override
@@ -301,24 +317,24 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 				break;
 			case LOADER_CATEGORIES:
 				viewBinder.setCategories(null);
-				EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);  
+				EditRuleDialog dialog = (EditRuleDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
 				if (dialog != null) {
 					dialog.setCategories(null);
 				}
 				break;
-		}		
-	}	
+		}
+	}
 
 	public void onEditClick(View view) {
 		ListView list = getListView();
 		int position = list.getPositionForView(view);
 		position -= list.getHeaderViewsCount();
 		long id = adapter.getItemId(position);
-		
+
 		Cursor cursor = (Cursor) adapter.getItem(position);
 		String caption = cursor.getString(cursor.getColumnIndex(RuleContract.COL_NAME_ANTECEDENT));
 		long category = cursor.getLong(cursor.getColumnIndex(RuleContract.COL_NAME_CONSEQUENT));
-		
+
 		EditRuleDialog dialog = EditRuleDialog.newInstance(caption, category, viewBinder.categories);
 		dialog.setDialogListener(new ModifyRuleDialogListener(id, caption, category));
 		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
@@ -333,21 +349,24 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 			Log.e(LOG_TAG, "Couldn't find id for item requested for deletion");
 			return;
 		}
-		
-		Uri uri = ContentUris.withAppendedId(RuleContract.CONTENT_URI, id);		
+
+		Uri uri = ContentUris.withAppendedId(RuleContract.CONTENT_URI, id);
 		DialogFragment dialog = ConfirmDeleteDialog.newInstance(uri);
 		dialog.show(getFragmentManager(), ConfirmDeleteDialog.class.toString());
 	}
-	
+
 	public boolean onAddClick(MenuItem menu) {
 		// Per default, select first category available
 		viewBinder.categories.moveToFirst();
 		long category = viewBinder.categories.getLong(viewBinder.categories.getColumnIndex(CategoryContract._ID));
-		
+
 		EditRuleDialog dialog = EditRuleDialog.newInstance("", category, viewBinder.categories);
 		dialog.setDialogListener(new AddRuleDialogListener());
 		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
-		
+
+		Account account = AccountManager.get(this).getAccountsByType(Authenticator.ACCOUNT_TYPE)[1];
+		ContentResolver.requestSync(account, LedgerContentProvider.AUTHORITY, new Bundle());
+
 		return true;
 	}
 }

@@ -25,7 +25,6 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
-import android.util.Log;
 
 /**
  * Content provider for accessing the application logic level data (as opposed to the metadata accessible
@@ -111,16 +110,12 @@ public class LedgerContentProvider extends ContentProvider {
 	}
 
 	protected SQLiteOpenHelper getHelper() {
-		String TAG = "LedgerContentProvider";
-		Log.d(TAG, "Getting helper for context " + getContext());
 		if (dbHelper == null) {
 			ContentProviderClient client = getContext().getContentResolver().acquireContentProviderClient(MetaContentProvider.AUTHORITY);
 			try {
 				MetaContentProvider buddy = (MetaContentProvider) client.getLocalContentProvider();
-				Log.d(TAG, "Found buddy " + buddy);
 				if (buddy.dbHelper != null) {
 					dbHelper = buddy.dbHelper;
-					Log.d(TAG, "Found dbHelper from buddy " + dbHelper);
 				}
 			} catch (ClassCastException x /* Wasn't a MetaContentProvider */) {
 			} catch (NullPointerException x /* MetaContentProvider is unavailable (because it's client is null) */) {
@@ -129,7 +124,6 @@ public class LedgerContentProvider extends ContentProvider {
 			}
 		}
 		if (dbHelper == null) {
-			Log.d(TAG, "Helper unavailable, creating new");
 			dbHelper = new LedgerDbHelper(getContext());
 		}
 		return dbHelper;
@@ -288,9 +282,6 @@ public class LedgerContentProvider extends ContentProvider {
 			}
 			uri = ContentUris.withAppendedId(uri, rowID);
 			if (rowID > -1) {
-				// Notify content observers
-				getContext().getContentResolver().notifyChange(uri, null);
-
 				// Put the insertion in the journal
 				if (journaling) {
 					try {
@@ -316,9 +307,11 @@ public class LedgerContentProvider extends ContentProvider {
 				}
 				// If journal and revision table were written without error, mark transaction as a success
 				db.setTransactionSuccessful();
+				// Notify content observers
+				getContext().getContentResolver().notifyChange(uri, null);
+
 			} else
 				db.setTransactionSuccessful(); // Nothing was inserted, so nothing could have gone wrong
-
 			return uri;
 		} finally {
 			db.endTransaction();
@@ -566,7 +559,6 @@ public class LedgerContentProvider extends ContentProvider {
 	 * Turns journaling and revision keeping on and off.
 	 */
 	public void setJournaling(boolean journaling) {
-		Log.d("", "journaling is now " + (journaling ? "on" : "off"));
 		this.journaling = journaling;
 	}
 

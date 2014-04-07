@@ -11,7 +11,6 @@ import android.content.OperationApplicationException;
 import android.content.UriMatcher;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.util.Log;
 
 /**
  * This class helps in situations where multiple operations have to executed changing between providers.
@@ -49,9 +48,8 @@ public class SharedTransaction {
 		LedgerContentProvider data = (LedgerContentProvider) dataClient.getLocalContentProvider();
 		ContentProviderClient metaClient = resolver.acquireContentProviderClient(MetaContentProvider.AUTHORITY);
 		MetaContentProvider meta = (MetaContentProvider) metaClient.getLocalContentProvider();
-		Log.d("",data + "");
-		Log.d("",meta + "");
 		SQLiteDatabase db = data.getHelper().getWritableDatabase();
+
 		db.beginTransaction();
 		try {
 			for (int i = 0; i < operations.size(); i++) {

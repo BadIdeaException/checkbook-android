@@ -7,9 +7,6 @@ import heger.christian.ledger.providers.CategorySubtotalsContract;
 import heger.christian.ledger.providers.EntryContract;
 import heger.christian.ledger.ui.CurrencyValueFormatter;
 import heger.christian.ledger.ui.entry.EntryActivity;
-
-import java.text.DateFormatSymbols;
-
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -32,6 +29,8 @@ import android.widget.TextView;
 
 
 public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, OnChildClickListener {
+	private static final String TAG = MonthFragment.class.getSimpleName();
+
 	/**
 	 * ViewBinder for displaying entries and categories with attached subtotals. Negative values will be printed in the color defined in
 	 * <code>R.color.red</code>.
@@ -82,14 +81,22 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 	}
 
 	@Override
+	public void onStart() {
+		super.onStart();
+		// Because of setRetainInstance(true), onCreate won't get called when navigating back to
+		// SpreadsheetActivity from another app.
+		// Therefore if the loader isn't currently running, start it to update data.
+		if (getLoaderManager().getLoader(0) != null && !getLoaderManager().getLoader(0).isStarted())
+			getLoaderManager().restartLoader(0, null, this);
+	}
+
+	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstance) {
 		View view = inflater.inflate(R.layout.layout_month_spreadsheet,
 				container, false);
 		Bundle args = getArguments();
 
 		this.month = args.getInt(SpreadsheetActivity.ARG_MONTH_ID);
-
-		getLoaderManager().initLoader(0, null, this);
 
 		listEntries = (ExpandableListView) view.findViewById(R.id.list_entries);
 		footerView = getLayoutInflater(null).inflate(R.layout.listitem_entries, null);
@@ -102,6 +109,7 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 		listEntries.addFooterView(new View(getActivity()), null, true);
 		listEntries.addFooterView(footerView, null, false);
 
+		getLoaderManager().initLoader(0, null, this);
 		adapter = new SpreadsheetAdapter(this.getActivity(),
 				null,
 				R.layout.listitem_entries,
@@ -117,8 +125,8 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 
 		// Set the text view for the caption of the spreadsheet to be
 		// <month> <year>
-		String monthName = DateFormatSymbols.getInstance().getMonths()[MonthsElapsedCalculator.getMonth(month)];
-		((TextView) view.findViewById(R.id.txt_month)).setText(monthName + " " + String.valueOf(MonthsElapsedCalculator.getYear(month)));
+//		String monthName = DateFormatSymbols.getInstance().getMonths()[MonthsElapsedCalculator.getMonth(month)];
+//		((TextView) view.findViewById(R.id.txt_month)).setText(monthName + " " + String.valueOf(MonthsElapsedCalculator.getYear(month)));
 
 //		FrameLayout overlay = new FrameLayout(getActivity());
 //
@@ -191,10 +199,12 @@ public class MonthFragment extends Fragment implements LoaderCallbacks<Cursor>, 
 	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 		adapter.setGroupCursor(data);
 		int total = 0;
-		int valueColumn = data.getColumnIndex(CategorySubtotalsContract.COL_NAME_VALUE);
-		data.moveToPosition(-1);
-		while (data.moveToNext()) {
-			total += data.getInt(valueColumn);
+		if (data != null) {
+			int valueColumn = data.getColumnIndex(CategorySubtotalsContract.COL_NAME_VALUE);
+			data.moveToPosition(-1);
+			while (data.moveToNext()) {
+				total += data.getInt(valueColumn);
+			}
 		}
 		updateFooter(total);
 	}

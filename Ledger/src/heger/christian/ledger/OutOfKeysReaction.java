@@ -360,7 +360,7 @@ public class OutOfKeysReaction extends Fragment {
 		hideOverlay();
 		// Remove ourselves from the activity
 		FragmentManager fragmentManager = getActivity().getFragmentManager();
-		fragmentManager.beginTransaction().remove(this).commit();
+		fragmentManager.beginTransaction().remove(this).commitAllowingStateLoss();
 	}
 
 	/**
@@ -411,8 +411,10 @@ public class OutOfKeysReaction extends Fragment {
 	protected void onFailure() {
 		cleanUp();
 		// Inform the user
-		DialogFragment dialog = OutOfKeysDialog.newInstance();
-		dialog.show(getActivity().getFragmentManager(), OUT_OF_KEYS_DIALOG_TAG);
+		final DialogFragment dialog = OutOfKeysDialog.newInstance();
+		// Cannot use dialog.show here because we need to commit allowing state loss
+		// Otherwise this will crash if the user cancels out of the LoginActivity
+		getActivity().getFragmentManager().beginTransaction().add(dialog, OUT_OF_KEYS_DIALOG_TAG).commitAllowingStateLoss();
 		if (listener != null) listener.onFailure();
 	}
 
@@ -425,7 +427,9 @@ public class OutOfKeysReaction extends Fragment {
 		OutOfKeysReaction reaction = new OutOfKeysReaction();
 		reaction.setRetainInstance(true);
 		FragmentManager fragmentManager = activity.getFragmentManager();
-		fragmentManager.beginTransaction().add(reaction, reaction.getClass().getCanonicalName()).commit();
+		// Need to commit allowing state loss here or this will crash when the
+		// user cancels out of the LoginActivity
+		fragmentManager.beginTransaction().add(reaction, reaction.getClass().getCanonicalName()).commitAllowingStateLoss();
 		fragmentManager.executePendingTransactions();
 		return reaction;
 	}

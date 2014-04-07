@@ -7,6 +7,7 @@ import heger.christian.ledger.SturdyAsyncQueryHandler;
 import heger.christian.ledger.providers.CategoryContract;
 import heger.christian.ledger.providers.OutOfKeysException;
 import heger.christian.ledger.ui.categories.EditCategoryDialog.EditCategoryDialogListener;
+import android.animation.LayoutTransition;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.AsyncQueryHandler;
@@ -30,7 +31,7 @@ import android.widget.SimpleCursorAdapter;
 public class CategoriesActivity extends ListActivity implements LoaderCallbacks<Cursor> {
 	private class AddCategoryDialogListener implements EditCategoryDialogListener {
 		@Override
-		public void onClose(String caption) {			
+		public void onClose(String caption) {
 			final ContentValues values = new ContentValues();
 			values.put(CategoryContract.COL_NAME_CAPTION, caption);
 			new SturdyAsyncQueryHandler(getContentResolver()) {
@@ -42,7 +43,7 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 							@Override
 							public void onSuccess() {
 								// New keys are available, try again
-								startInsert(0, null, CategoryContract.CONTENT_URI, values);							
+								startInsert(0, null, CategoryContract.CONTENT_URI, values);
 							}
 							@Override
 							public void onFailure() {}
@@ -77,9 +78,9 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 
 	private static final String STATE_EDITING_ID = "editing_id";
 	private static final String STATE_EDITING_VALUE_CAPTION = "editing_caption";
-	
+
 	private CursorAdapter adapter;
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -101,11 +102,11 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 			Log.e(this.getClass().getCanonicalName(), "Failed to find parent view of list for setting padding", x);
 		}
 		getActionBar().setDisplayHomeAsUpEnabled(true);
-		
-		adapter = new SimpleCursorAdapter(this, 
-				R.layout.listitem_categories, 
-				null, 
-				new String[] { CategoryContract.COL_NAME_CAPTION }, 
+
+		adapter = new SimpleCursorAdapter(this,
+				R.layout.listitem_categories,
+				null,
+				new String[] { CategoryContract.COL_NAME_CAPTION },
 				new int[] { R.id.txt_caption }, 0) {
 			@Override
 			public long getItemId(int position) {
@@ -116,11 +117,12 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 		};
 
 		getLoaderManager().initLoader(0, null, this);
-		
+
 		ListView list = getListView();
 		list.setAdapter(adapter);
 		list.setItemsCanFocus(true);
-		
+		list.setLayoutTransition(new LayoutTransition());
+
 		// Re-created activity while a category was being edited.
 		// Reattach dialog listener
 		if (savedInstanceState != null) {
@@ -140,14 +142,14 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 			}
 		}
 	}
-	
+
 	@Override
 	public void onSaveInstanceState(Bundle state) {
 		super.onSaveInstanceState(state);
 		// If currently editing an existsting category, store edited id and old caption
 		EditCategoryDialog dialog = (EditCategoryDialog) getFragmentManager().findFragmentByTag(EDIT_DIALOG_TAG);
 		if (dialog != null) {
-			EditCategoryDialogListener listener = (EditCategoryDialogListener) dialog.getDialogListener();
+			EditCategoryDialogListener listener = dialog.getDialogListener();
 			// If modifying existing category, save parameters necessary to recreate
 			if (listener instanceof ModifyCategoryDialogListener) {
 				state.putLong(STATE_EDITING_ID, ((ModifyCategoryDialogListener) listener).id);
@@ -155,14 +157,14 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 			}
 		}
 	}
-	
+
 	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		return new CursorLoader(this, CategoryContract.CONTENT_URI, null, null, null, CategoryContract._ID);
 	}
 
 	@Override
-	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {		
+	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 		adapter.swapCursor(data);
 	}
 
@@ -170,15 +172,15 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 	public void onLoaderReset(Loader<Cursor> loader) {
 		adapter.swapCursor(null);
 	}
-		
+
 	public boolean onAddClick(MenuItem menu) {
 		EditCategoryDialog dialog = EditCategoryDialog.newInstance(getResources().getString(R.string.new_category));
 		dialog.setDialogListener(new AddCategoryDialogListener());
 		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
-		
+
 		return true;
 	}
-	
+
 	public void onEditClick(View view) {
 		View item = (View) view.getParent();
 		ListView list = getListView();
@@ -188,20 +190,20 @@ public class CategoriesActivity extends ListActivity implements LoaderCallbacks<
 		long id = adapter.getItemId(position);
 		Cursor cursor = (Cursor) adapter.getItem(position);
 		String caption = cursor.getString(cursor.getColumnIndex(CategoryContract.COL_NAME_CAPTION));
-		
+
 		EditCategoryDialog dialog = EditCategoryDialog.newInstance(caption);
 		dialog.setDialogListener(new ModifyCategoryDialogListener(id, caption));
 		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
 	}
-	
+
 	public void onDeleteClick(View view) {
 		View item = (View) view.getParent();
 		ListView list = getListView();
-		
+
 		int position = list.getPositionForView(item) - list.getHeaderViewsCount();
 		long id = adapter.getItemId(position);
 		Uri uri = ContentUris.withAppendedId(CategoryContract.CONTENT_URI, id);
-		
+
 		new AsyncQueryHandler(getContentResolver()) {
 		}.startDelete(0, null, uri, null, null);
 	}

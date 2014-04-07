@@ -16,6 +16,7 @@
  */
 var express = require('express');
 var fs = require("fs");
+var http = require("http");
 var https = require('https');
 var path = require('path');
 var oauth2orize = require("oauth2orize");
@@ -96,6 +97,9 @@ app.post("/sync", function (req, res) {
 	res.json({ created: [], updated: [], deleted: [], anchor: 255 });
 });
 
-https.createServer(credentials, app).listen(app.get('port'), function(){
-  console.log('Mock server listening on port ' + app.get('port'));
+//https.createServer(credentials, app).listen(app.get('port'), function(){
+//  console.log('Mock https server listening on port ' + app.get('port'));
+//});
+http.createServer(app).listen(app.get('port'), function(){
+	  console.log('Mock http server listening on port ' + app.get('port'));
 });
