@@ -1,6 +1,6 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
-import heger.christian.ledger.providers.MetaContentProvider.RevisionTableContract;
+import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableContract;
 
 import java.util.NoSuchElementException;
 

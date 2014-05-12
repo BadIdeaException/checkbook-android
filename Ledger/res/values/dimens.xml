@@ -5,4 +5,5 @@
     <dimen name="activity_horizontal_margin">8dp</dimen>
     <dimen name="activity_vertical_margin">8dp</dimen>
 	<dimen name="dialog_padding">8dp</dimen>
+	<dimen name="tileContentPadding">12dp</dimen>
 </resources>

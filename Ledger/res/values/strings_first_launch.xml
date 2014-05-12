@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="caption1">Know</string>
+	<string name="caption2">Save</string>
+	<string name="caption3">Spend</string>
+	
+	<string name="details1">Checkbook offers you an intuitive and flexible way to keep track of your incomes and expenses. Knowing your finances has never been so easy.</string>
+	<string name="details2">Knowing where your money went is the first step toward making more of it. Checkbook helps you identify fund drainers at a glance.</string>
+	<string name="details3">Use your money for the things that really matter in life. Knowing you can afford it.</string>
+	
+	<string name="skip_to_login">Skip this</string>
+	<string name="login">Login now</string>
+</resources>

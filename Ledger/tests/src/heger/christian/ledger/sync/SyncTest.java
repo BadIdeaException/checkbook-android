@@ -1,15 +1,15 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
-import heger.christian.ledger.providers.LedgerContentProvider;
-import heger.christian.ledger.sync.SyncAdapter;
+import heger.christian.checkbook.providers.CheckbookContentProvider;
+import heger.christian.checkbook.sync.SyncAdapter;
 import android.test.AndroidTestCase;
 
 public class SyncTest extends AndroidTestCase {
 	public void testSync() {
 		new SyncAdapter(getContext(), true).onPerformSync(null,
 				null,
-				LedgerContentProvider.AUTHORITY,
-				getContext().getContentResolver().acquireContentProviderClient(LedgerContentProvider.AUTHORITY),
+				CheckbookContentProvider.AUTHORITY,
+				getContext().getContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY),
 				null);
 
 	}

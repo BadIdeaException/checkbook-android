@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <sync-adapter
         xmlns:android="http://schemas.android.com/apk/res/android"
-        android:contentAuthority="heger.christian.ledger.providers.ledgercontentprovider"
-        android:accountType="heger.christian.ledger"
+        android:contentAuthority="heger.christian.checkbook.providers.checkbookcontentprovider"
+        android:accountType="heger.christian.checkbook"
         android:userVisible="true"
         android:supportsUploading="true"
         android:allowParallelSyncs="false"

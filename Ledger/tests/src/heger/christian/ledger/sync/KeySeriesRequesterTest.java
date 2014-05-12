@@ -1,8 +1,8 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
-import heger.christian.ledger.network.LedgerSSLContextFactory;
-import heger.christian.ledger.network.TruststoreException;
-import heger.christian.ledger.test.R;
+import heger.christian.checkbook.network.CheckbookSSLContextFactory;
+import heger.christian.checkbook.network.TruststoreException;
+import heger.christian.checkbook.test.R;
 
 import java.io.IOException;
 
@@ -17,7 +17,7 @@ public class KeySeriesRequesterTest extends InstrumentationTestCase {
 //		SecureConnection connection = null;
 //		try {
 //			connection = new SecureConnection((HttpsURLConnection) Endpoints.URL_KEY_REQUEST.openConnection());
-//			connection.loadTruststore(getInstrumentation().getContext().getResources().openRawResource(heger.christian.ledger.R.raw.truststore), null);
+//			connection.loadTruststore(getInstrumentation().getContext().getResources().openRawResource(heger.christian.checkbook.R.raw.truststore), null);
 //		} catch (IOException x) {
 //			fail("IOException during connection setup: " + x.getMessage());
 //		} catch (NotFoundException x) {
@@ -26,7 +26,7 @@ public class KeySeriesRequesterTest extends InstrumentationTestCase {
 //			fail("Error while loading certificate: " + x.getMessage());
 //		}
 //
-		LedgerSSLContextFactory factory = new LedgerSSLContextFactory(getInstrumentation().getContext().getResources().openRawResource(R.raw.truststore), "keystore");
+		CheckbookSSLContextFactory factory = new CheckbookSSLContextFactory(getInstrumentation().getContext().getResources().openRawResource(R.raw.truststore), "keystore");
 		requester.setSSLSocketFactory(factory.createSSLContext().getSocketFactory());
 		String tag = "Request key series: ";
 		try {

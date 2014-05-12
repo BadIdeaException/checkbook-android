@@ -14,16 +14,15 @@
     <string name="new_supercategory">New supercategory</string>
     <string name="new_category">New category</string>
     <string name="choose_category">Choose a category</string>
-	<string name="done">Done</string>
-	<string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="cancel">Cancel</string>
     <string name="no_rules">You have not created any rules yet.</string>
     <string name="rules_no_categories">Rules depend on categories to work, but you haven\'t created any categories yet. 
-        You can click below to be taken to the categories screen.       
-    </string>
+        You can click below to be taken to the categories screen.       </string>
     <string name="confirm_delete_rule">Really delete this rule?</string>
-    
+
     <!-- Text and hints for UI components -->
-    <string name="app_name">Ledger</string>
+    <string name="app_name">Checkbook</string>
     <string name="total">Total</string>
     <string name="title_activity_entry">Entry</string>
     <string name="edit_caption_hint">Caption</string>
@@ -50,7 +49,7 @@
     <string name="menu_manage_categories_title_condensed">Categories</string>
     <string name="menu_manage_rules_title">@string/title_activity_rules</string>
     <string name="menu_manage_rules_title_condensed">Rules</string>
-    
+
     <!-- Values for the text view helping the user about the enabled state of the save button -->
     <string name="txt_save_hint_no_value">Enter a value to enable saving this entry.</string>
     <string name="txt_save_hint_no_category">Select a category to enable saving this entry.</string>
@@ -66,13 +65,12 @@
 
     <!-- Values for the dialog shown when the user attempts to create an entry but there are no categories present -->
     <string name="dlg_no_categories_message">Cannot create a new entry while there are no categories. Would you like to create some now?</string>
-   
     <string name="title_activity_category">Manage categories</string>
-    <string name="assist_first_start">"Welcome to Ledger! A good place to start is usually by adding some categories. If you would like to manage your categories now, select Settings and then Manage categories."</string>
+    <string name="assist_first_start">"Welcome to Checkbook! A good place to start is usually by adding some categories. If you would like to manage your categories now, select Settings and then Manage categories."</string>
     <string name="guess_category">Guess category from caption</string>
     <string name="title_activity_rules">Manage rules</string>
     <string name="caption_to_match">Caption to match</string>
     <string name="when_caption_contains_the_phrase">When caption contains the phrase</string>
     <string name="set_category_to">Set category to</string>
-   
+
 </resources>

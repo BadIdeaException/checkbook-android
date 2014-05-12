@@ -1,4 +1,4 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
 import org.json.JSONException;
 import org.json.JSONObject;

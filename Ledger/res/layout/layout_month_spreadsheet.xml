@@ -9,5 +9,10 @@
 	    android:id="@+id/list_entries"
 	    android:animateLayoutChanges="true"
 	    android:layout_width="match_parent"
-	    android:layout_height="wrap_content"/>
+	    android:layout_height="match_parent"
+	    android:groupIndicator="@null"
+	    android:divider="@android:color/transparent"
+	    android:childDivider="@android:color/black"
+	    android:listSelector="@android:color/transparent"
+	    android:drawSelectorOnTop="false"/>
 </LinearLayout>

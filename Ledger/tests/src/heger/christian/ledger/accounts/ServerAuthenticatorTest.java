@@ -1,6 +1,6 @@
-package heger.christian.ledger.accounts;
+package heger.christian.checkbook.accounts;
 
-import heger.christian.ledger.network.TruststoreException;
+import heger.christian.checkbook.network.TruststoreException;
 
 import java.io.IOException;
 

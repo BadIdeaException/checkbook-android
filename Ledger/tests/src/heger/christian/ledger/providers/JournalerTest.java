@@ -1,9 +1,9 @@
-package heger.christian.ledger.providers;
+package heger.christian.checkbook.providers;
 
-import heger.christian.ledger.providers.Journaler;
-import heger.christian.ledger.providers.MetaContentProvider;
-import heger.christian.ledger.providers.MetaContentProvider.JournalContract;
-import heger.christian.ledger.providers.MetaContentProvider.SequenceAnchorContract;
+import heger.christian.checkbook.providers.Journaler;
+import heger.christian.checkbook.providers.MetaContentProvider;
+import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
+import heger.christian.checkbook.providers.MetaContentProvider.SequenceAnchorContract;
 
 import java.util.ArrayList;
 

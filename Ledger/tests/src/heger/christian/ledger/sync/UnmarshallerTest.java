@@ -1,11 +1,11 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
-import heger.christian.ledger.db.LedgerDbHelper.CategoryContract;
-import heger.christian.ledger.providers.LedgerContentProvider;
-import heger.christian.ledger.providers.MetaContentProvider;
-import heger.christian.ledger.providers.MetaContentProvider.RevisionTableContract;
-import heger.christian.ledger.providers.RuleContract;
-import heger.christian.ledger.providers.SharedTransaction;
+import heger.christian.checkbook.db.CheckbookDbHelper.CategoryContract;
+import heger.christian.checkbook.providers.CheckbookContentProvider;
+import heger.christian.checkbook.providers.MetaContentProvider;
+import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableContract;
+import heger.christian.checkbook.providers.RuleContract;
+import heger.christian.checkbook.providers.SharedTransaction;
 
 import java.util.List;
 
@@ -21,7 +21,7 @@ import android.content.SyncStats;
 import android.database.Cursor;
 import android.test.ProviderTestCase2;
 
-public class UnmarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
+public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider> {
 	private static final long CATEGORY_ID = 1;
 	private static final String CATEGORY_CAPTION = "category_caption";
 	private static final int CATEGORY_REVISION = 1;
@@ -44,7 +44,7 @@ public class UnmarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 	JSONObject json;
 
 	public UnmarshallerTest() {
-		super(LedgerContentProvider.class, LedgerContentProvider.AUTHORITY);
+		super(CheckbookContentProvider.class, CheckbookContentProvider.AUTHORITY);
 	}
 
 	@Override
@@ -93,7 +93,7 @@ public class UnmarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 		Unmarshaller unmarshaller = new Unmarshaller();
 		List<ContentProviderOperation> operations = unmarshaller.unmarshal(json);
 		// Disable journaling / revision keeping
-		((LedgerContentProvider) getMockContentResolver().acquireContentProviderClient(LedgerContentProvider.AUTHORITY).getLocalContentProvider()).setJournaling(false);
+		((CheckbookContentProvider) getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY).getLocalContentProvider()).setJournaling(false);
 		SharedTransaction transaction = SharedTransaction.newInstance(getMockContext());
 		transaction.applyBatch(operations);
 
@@ -157,7 +157,7 @@ public class UnmarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 		Unmarshaller unmarshaller = new Unmarshaller();
 		List<ContentProviderOperation> operations = unmarshaller.unmarshal(json);
 		// Disable journaling / revision keeping
-		((LedgerContentProvider) resolver.acquireContentProviderClient(LedgerContentProvider.AUTHORITY).getLocalContentProvider()).setJournaling(false);
+		((CheckbookContentProvider) resolver.acquireContentProviderClient(CheckbookContentProvider.AUTHORITY).getLocalContentProvider()).setJournaling(false);
 		SharedTransaction transaction = SharedTransaction.newInstance(getMockContext());
 		transaction.applyBatch(operations);
 
@@ -213,7 +213,7 @@ public class UnmarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 		Unmarshaller unmarshaller = new Unmarshaller();
 		List<ContentProviderOperation> operations = unmarshaller.unmarshal(json);
 		// Disable journaling / revision keeping
-		((LedgerContentProvider) resolver.acquireContentProviderClient(LedgerContentProvider.AUTHORITY).getLocalContentProvider()).setJournaling(false);
+		((CheckbookContentProvider) resolver.acquireContentProviderClient(CheckbookContentProvider.AUTHORITY).getLocalContentProvider()).setJournaling(false);
 		SharedTransaction transaction = SharedTransaction.newInstance(getMockContext());
 		transaction.applyBatch(operations);
 

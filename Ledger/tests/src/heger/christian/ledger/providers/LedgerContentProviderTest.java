@@ -1,8 +1,8 @@
-package heger.christian.ledger.providers;
+package heger.christian.checkbook.providers;
 
-import heger.christian.ledger.db.LedgerDbHelper.KeyGenerationContract;
-import heger.christian.ledger.providers.MetaContentProvider.JournalContract;
-import heger.christian.ledger.providers.MetaContentProvider.RevisionTableContract;
+import heger.christian.checkbook.db.CheckbookDbHelper.KeyGenerationContract;
+import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
+import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableContract;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -15,13 +15,13 @@ import android.database.Cursor;
 import android.test.ProviderTestCase2;
 
 
-public class LedgerContentProviderTest extends ProviderTestCase2<LedgerContentProvider> {
+public class CheckbookContentProviderTest extends ProviderTestCase2<CheckbookContentProvider> {
 
-	public LedgerContentProviderTest() {
-		super(LedgerContentProvider.class, LedgerContentProvider.AUTHORITY);
+	public CheckbookContentProviderTest() {
+		super(CheckbookContentProvider.class, CheckbookContentProvider.AUTHORITY);
 	}
 
-//	private LedgerContentProvider dataProvider;
+//	private CheckbookContentProvider dataProvider;
 	private MetaContentProvider metaProvider;
 
 	@Override

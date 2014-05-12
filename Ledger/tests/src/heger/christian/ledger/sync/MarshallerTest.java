@@ -1,13 +1,13 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
-import heger.christian.ledger.db.LedgerDbHelper.KeyGenerationContract;
-import heger.christian.ledger.providers.CategoryContract;
-import heger.christian.ledger.providers.Journaler;
-import heger.christian.ledger.providers.LedgerContentProvider;
-import heger.christian.ledger.providers.MetaContentProvider;
-import heger.christian.ledger.providers.MetaContentProvider.JournalContract;
-import heger.christian.ledger.providers.MetaContentProvider.RevisionTableContract;
-import heger.christian.ledger.providers.RuleContract;
+import heger.christian.checkbook.db.CheckbookDbHelper.KeyGenerationContract;
+import heger.christian.checkbook.providers.CategoryContract;
+import heger.christian.checkbook.providers.Journaler;
+import heger.christian.checkbook.providers.CheckbookContentProvider;
+import heger.christian.checkbook.providers.MetaContentProvider;
+import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
+import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableContract;
+import heger.christian.checkbook.providers.RuleContract;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,7 +19,7 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.test.ProviderTestCase2;
 
-public class MarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
+public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> {
 	private static final long CATEGORY_ID = 1;
 	private static final String CATEGORY_CAPTION = "category_caption";
 
@@ -60,7 +60,7 @@ public class MarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 	private Uri r2;
 
 	public MarshallerTest() {
-		super(LedgerContentProvider.class, LedgerContentProvider.AUTHORITY);
+		super(CheckbookContentProvider.class, CheckbookContentProvider.AUTHORITY);
 	}
 
 	@Override
@@ -153,7 +153,7 @@ public class MarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
 		Translator translator = new Translator();
 
-		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(LedgerContentProvider.AUTHORITY);
+		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY);
 		JSONObject json = marshaller.marshal(journal, revisions, provider, 0);
 
 		assertEquals(0, json.getInt(Marshaller.JSON_FIELD_ANCHOR));
@@ -184,7 +184,7 @@ public class MarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
 		Translator translator = new Translator();
 
-		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(LedgerContentProvider.AUTHORITY);
+		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY);
 		JSONObject json = marshaller.marshal(journal, revisions, provider, 0);
 
 		assertEquals(0, json.getInt(Marshaller.JSON_FIELD_ANCHOR));
@@ -222,7 +222,7 @@ public class MarshallerTest extends ProviderTestCase2<LedgerContentProvider> {
 		JournalSnapshot journal = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
 		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
 
-		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(LedgerContentProvider.AUTHORITY);
+		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY);
 		JSONObject json = marshaller.marshal(journal, revisions, provider, 0);
 
 		assertEquals(0, json.getInt(Marshaller.JSON_FIELD_ANCHOR));

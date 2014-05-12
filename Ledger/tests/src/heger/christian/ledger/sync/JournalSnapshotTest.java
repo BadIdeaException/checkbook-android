@@ -1,7 +1,7 @@
-package heger.christian.ledger.sync;
+package heger.christian.checkbook.sync;
 
-import heger.christian.ledger.providers.Journaler;
-import heger.christian.ledger.providers.MetaContentProvider.JournalContract;
+import heger.christian.checkbook.providers.Journaler;
+import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
 
 import java.util.Map;
 import java.util.Set;

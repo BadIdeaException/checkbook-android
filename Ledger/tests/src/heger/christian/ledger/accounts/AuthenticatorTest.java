@@ -1,6 +1,6 @@
-package heger.christian.ledger.accounts;
+package heger.christian.checkbook.accounts;
 
-import heger.christian.ledger.accounts.Authenticator;
+import heger.christian.checkbook.accounts.Authenticator;
 
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
@@ -131,7 +131,7 @@ public class AuthenticatorTest extends AndroidTestCase {
 			return future;
 		}		
 	}
-	private static final String DUMMY_ACCOUNT_NAME = "heger.christian.ledger.tests.dummy_account";
+	private static final String DUMMY_ACCOUNT_NAME = "heger.christian.checkbook.tests.dummy_account";
 
 	private static final String ACCESS_TOKEN = "correct access token";
 	private static final String REFRESH_TOKEN = "correct refresh token";
