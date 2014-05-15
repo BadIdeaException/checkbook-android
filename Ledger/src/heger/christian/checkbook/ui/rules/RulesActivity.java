@@ -1,23 +1,18 @@
 package heger.christian.checkbook.ui.rules;
 
 import heger.christian.checkbook.OutOfKeysReaction;
-import heger.christian.checkbook.R;
 import heger.christian.checkbook.OutOfKeysReaction.KeyRequestResultListener;
-import heger.christian.checkbook.accounts.Authenticator;
+import heger.christian.checkbook.R;
 import heger.christian.checkbook.providers.CategoryContract;
-import heger.christian.checkbook.providers.CheckbookContentProvider;
 import heger.christian.checkbook.providers.OutOfKeysException;
 import heger.christian.checkbook.providers.RuleContract;
 import heger.christian.checkbook.ui.rules.EditRuleDialog.EditRuleDialogListener;
 import heger.christian.checkbook.util.SturdyAsyncQueryHandler;
-import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.animation.LayoutTransition;
 import android.app.DialogFragment;
 import android.app.ListActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.AsyncQueryHandler;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
@@ -363,9 +358,6 @@ public class RulesActivity extends ListActivity implements LoaderCallbacks<Curso
 		EditRuleDialog dialog = EditRuleDialog.newInstance("", category, viewBinder.categories);
 		dialog.setDialogListener(new AddRuleDialogListener());
 		dialog.show(getFragmentManager(), EDIT_DIALOG_TAG);
-
-		Account account = AccountManager.get(this).getAccountsByType(Authenticator.ACCOUNT_TYPE)[1];
-		ContentResolver.requestSync(account, CheckbookContentProvider.AUTHORITY, new Bundle());
 
 		return true;
 	}
