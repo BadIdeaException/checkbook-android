@@ -7,7 +7,9 @@ import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableCont
 import heger.christian.checkbook.providers.RuleContract;
 import heger.christian.checkbook.providers.SharedTransaction;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -73,7 +75,10 @@ public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider
 		JSONObject cat1 = new JSONObject();
 		cat1.put(OperationFactory.JSON_FIELD_TABLE, CategoryContract.TABLE_NAME);
 		cat1.put(OperationFactory.JSON_FIELD_ROW, CATEGORY_ID);
-		cat1.put(OperationFactory.JSON_FIELD_REVISION, CATEGORY_REVISION);
+		Map<String, Integer> cat1Revisions = new HashMap<String, Integer>();
+		cat1Revisions.put(heger.christian.checkbook.providers.CategoryContract._ID, CATEGORY_REVISION);
+		cat1Revisions.put(heger.christian.checkbook.providers.CategoryContract.COL_NAME_CAPTION, CATEGORY_REVISION);
+		cat1.put(OperationFactory.JSON_FIELD_REVISIONS, new JSONObject(cat1Revisions));
 		JSONObject cat1Data = new JSONObject();
 		cat1Data.put(CategoryContract._ID, CATEGORY_ID);
 		cat1Data.put(CategoryContract.COL_NAME_CAPTION, CATEGORY_CAPTION);
@@ -83,7 +88,11 @@ public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider
 		JSONObject cat2 = new JSONObject();
 		cat2.put(OperationFactory.JSON_FIELD_TABLE, CategoryContract.TABLE_NAME);
 		cat2.put(OperationFactory.JSON_FIELD_ROW, CATEGORY_ID2);
-		cat2.put(OperationFactory.JSON_FIELD_REVISION, CATEGORY_REVISION2);
+		Map<String, Integer> cat2Revisions = new HashMap<String, Integer>();
+		cat2Revisions.put(heger.christian.checkbook.providers.CategoryContract._ID, CATEGORY_REVISION2);
+		cat2Revisions.put(heger.christian.checkbook.providers.CategoryContract.COL_NAME_CAPTION, CATEGORY_REVISION2);
+		cat2.put(OperationFactory.JSON_FIELD_REVISIONS, new JSONObject(cat2Revisions));
+//		cat2.put(OperationFactory.JSON_FIELD_REVISION, CATEGORY_REVISION2);
 		JSONObject cat2Data = new JSONObject();
 		cat2Data.put(CategoryContract._ID, CATEGORY_ID2);
 		cat2Data.put(CategoryContract.COL_NAME_CAPTION, CATEGORY_CAPTION2);
@@ -111,11 +120,11 @@ public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider
 		cursor = resolver.query(RevisionTableContract.CONTENT_URI, null, null, null, null);
 		assertEquals(4, cursor.getCount());
 
-		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(cursor);
-		assertEquals(CATEGORY_REVISION, revisions.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID, CategoryContract._ID));
-		assertEquals(CATEGORY_REVISION, revisions.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID, CategoryContract.COL_NAME_CAPTION));
-		assertEquals(CATEGORY_REVISION2, revisions.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID2, CategoryContract._ID));
-		assertEquals(CATEGORY_REVISION2, revisions.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID2, CategoryContract.COL_NAME_CAPTION));
+		RevisionTableSnapshot revisionTableSnapshot = RevisionTableSnapshot.createFromCursor(cursor);
+		assertEquals(CATEGORY_REVISION, revisionTableSnapshot.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID, CategoryContract._ID));
+		assertEquals(CATEGORY_REVISION, revisionTableSnapshot.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID, CategoryContract.COL_NAME_CAPTION));
+		assertEquals(CATEGORY_REVISION2, revisionTableSnapshot.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID2, CategoryContract._ID));
+		assertEquals(CATEGORY_REVISION2, revisionTableSnapshot.getRevision(CategoryContract.TABLE_NAME, CATEGORY_ID2, CategoryContract.COL_NAME_CAPTION));
 
 		SyncStats stats = unmarshaller.getStats();
 		assertEquals(0, stats.numSkippedEntries);
@@ -148,7 +157,11 @@ public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider
 		r1.put(OperationFactory.JSON_FIELD_TABLE, RuleContract.TABLE_NAME);
 		r1.put(OperationFactory.JSON_FIELD_ROW, RULE_ID);
 		r1.put(OperationFactory.JSON_FIELD_COLUMN, RuleContract.COL_NAME_CONSEQUENT);
-		r1.put(OperationFactory.JSON_FIELD_REVISION, RULE_REVISION);
+
+		Map<String, Integer> r1Revisions = new HashMap<String,Integer>();
+		r1Revisions.put(RuleContract.COL_NAME_CONSEQUENT, RULE_REVISION);
+		r1.put(OperationFactory.JSON_FIELD_REVISIONS, new JSONObject(r1Revisions));
+//		r1.put(OperationFactory.JSON_FIELD_REVISION, RULE_REVISION);
 		JSONObject r1Data = new JSONObject();
 		r1Data.put(RuleContract.COL_NAME_CONSEQUENT, CATEGORY_ID2);
 		r1.put(OperationFactory.JSON_FIELD_DATA, r1Data);
@@ -175,10 +188,10 @@ public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider
 				null);
 
 		assertEquals(3, cursor.getCount());
-		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(cursor);
-		assertEquals(0, revisions.getRevision(RuleContract.TABLE_NAME, RULE_ID, RuleContract._ID));
-		assertEquals(0, revisions.getRevision(RuleContract.TABLE_NAME, RULE_ID, RuleContract.COL_NAME_ANTECEDENT));
-		assertEquals(RULE_REVISION, revisions.getRevision(RuleContract.TABLE_NAME, RULE_ID, RuleContract.COL_NAME_CONSEQUENT));
+		RevisionTableSnapshot revisionTableSnapshot = RevisionTableSnapshot.createFromCursor(cursor);
+		assertEquals(0, revisionTableSnapshot.getRevision(RuleContract.TABLE_NAME, RULE_ID, RuleContract._ID));
+		assertEquals(0, revisionTableSnapshot.getRevision(RuleContract.TABLE_NAME, RULE_ID, RuleContract.COL_NAME_ANTECEDENT));
+		assertEquals(RULE_REVISION, revisionTableSnapshot.getRevision(RuleContract.TABLE_NAME, RULE_ID, RuleContract.COL_NAME_CONSEQUENT));
 
 		SyncStats stats = unmarshaller.getStats();
 		assertEquals(0, stats.numSkippedEntries);
@@ -207,7 +220,11 @@ public class UnmarshallerTest extends ProviderTestCase2<CheckbookContentProvider
 		JSONObject cat1 = new JSONObject();
 		cat1.put(OperationFactory.JSON_FIELD_TABLE, CategoryContract.TABLE_NAME);
 		cat1.put(OperationFactory.JSON_FIELD_ROW, CATEGORY_ID2);
-		cat1.put(OperationFactory.JSON_FIELD_REVISION, CATEGORY_REVISION2);
+		Map<String, Integer> cat1Revisions = new HashMap<String,Integer>();
+		cat1Revisions.put(heger.christian.checkbook.providers.CategoryContract._ID, CATEGORY_REVISION2);
+		cat1Revisions.put(heger.christian.checkbook.providers.CategoryContract.COL_NAME_CAPTION, CATEGORY_REVISION2);
+		cat1.put(OperationFactory.JSON_FIELD_REVISIONS, new JSONObject(cat1Revisions));
+//		cat1.put(OperationFactory.JSON_FIELD_REVISION, CATEGORY_REVISION2);
 		deleted.put(cat1);
 
 		Unmarshaller unmarshaller = new Unmarshaller();

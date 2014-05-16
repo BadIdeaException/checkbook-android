@@ -1,5 +1,8 @@
 package heger.christian.checkbook.sync;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -13,13 +16,16 @@ public abstract class JSONBuilder {
 	public static final String JSON_FIELD_ROW = "row";
 	public static final String JSON_FIELD_COLUMN = "column_name";
 	public static final String JSON_FIELD_DATA = "data";
-	public static final String JSON_FIELD_REVISION = "revision";
+	// FIXME Rename to "revisions"
+	public static final String JSON_FIELD_REVISIONS = "revisions";
 
 	private String table = null;
 	private JSONObject data = null;
 	private Long row = null;
 	private String column = null;
-	private Integer revision = null;
+	// FIXME Change to Map column -> revision
+//	private Integer revision = null;
+	private Map<String, Integer> revisions = new HashMap<String, Integer>();
 
 	/**
 	 * Concrete <code>JSONBuilder</code> for a created entry.
@@ -72,8 +78,10 @@ public abstract class JSONBuilder {
 		return this;
 	}
 
-	public JSONBuilder withRevision(int revision) {
-		this.revision = revision;
+	public JSONBuilder withRevisions(Map<String, Integer> revisions) {
+		// FIXME Change from scalar to map column -> revision
+		this.revisions = revisions;
+//		this.revision = revision;
 		return this;
 	}
 
@@ -87,8 +95,11 @@ public abstract class JSONBuilder {
 			result.put(JSON_FIELD_COLUMN, column);
 		if (data != null)
 			result.put(JSON_FIELD_DATA, data);
-		if (revision != null)
-			result.put(JSON_FIELD_REVISION, revision);
+		if (revisions != null) {
+			// FIXME Convert map to JSONObject { column: revision }
+			result.put(JSON_FIELD_REVISIONS, new JSONObject(revisions));
+//			result.put(JSON_FIELD_REVISIONS, revision);
+		}
 		return result;
 	}
 

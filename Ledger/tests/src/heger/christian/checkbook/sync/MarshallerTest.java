@@ -1,13 +1,15 @@
 package heger.christian.checkbook.sync;
 
-import heger.christian.checkbook.db.CheckbookDbHelper.KeyGenerationContract;
 import heger.christian.checkbook.providers.CategoryContract;
-import heger.christian.checkbook.providers.Journaler;
 import heger.christian.checkbook.providers.CheckbookContentProvider;
+import heger.christian.checkbook.providers.Journaler;
 import heger.christian.checkbook.providers.MetaContentProvider;
 import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
+import heger.christian.checkbook.providers.MetaContentProvider.KeyGenerationContract;
 import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableContract;
 import heger.christian.checkbook.providers.RuleContract;
+
+import java.util.Iterator;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -149,12 +151,12 @@ public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> 
 	public void testMarshalCreations() throws JSONException {
 		Marshaller marshaller = new Marshaller();
 		writeCreations();
-		JournalSnapshot journal = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
-		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
+		JournalSnapshot journalSnapshot = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
+		RevisionTableSnapshot revisionTableSnapshot = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
 		Translator translator = new Translator();
 
 		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY);
-		JSONObject json = marshaller.marshal(journal, revisions, provider, 0);
+		JSONObject json = marshaller.marshal(journalSnapshot, revisionTableSnapshot, provider, 0);
 
 		assertEquals(0, json.getInt(Marshaller.JSON_FIELD_ANCHOR));
 
@@ -167,7 +169,12 @@ public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> 
 			JSONObject operation = array.getJSONObject(i);
 			assertEquals(tables[i], operation.get(JSONBuilder.JSON_FIELD_TABLE));
 			assertEquals(ids[i], operation.get(JSONBuilder.JSON_FIELD_ROW));
-			assertEquals(0, operation.get(JSONBuilder.JSON_FIELD_REVISION));
+			JSONObject revisions = operation.getJSONObject(JSONBuilder.JSON_FIELD_REVISIONS);
+			Iterator<String> iterator = revisions.keys();
+			while (iterator.hasNext()) {
+				assertEquals(0, revisions.getInt(iterator.next()));
+			}
+//			assertEquals(0, operation.get(JSONBuilder.JSON_FIELD_REVISIONS));
 			assertTrue(compareContentValues(values[i], translator.translate(operation.getJSONObject(JSONBuilder.JSON_FIELD_DATA))));
 		}
 
@@ -180,12 +187,12 @@ public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> 
 		Marshaller marshaller = new Marshaller();
 		writeCreations();
 		writeUpdates();
-		JournalSnapshot journal = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
-		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
+		JournalSnapshot journalSnapshot = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
+		RevisionTableSnapshot revisionTableSnapshot = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
 		Translator translator = new Translator();
 
 		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY);
-		JSONObject json = marshaller.marshal(journal, revisions, provider, 0);
+		JSONObject json = marshaller.marshal(journalSnapshot, revisionTableSnapshot, provider, 0);
 
 		assertEquals(0, json.getInt(Marshaller.JSON_FIELD_ANCHOR));
 
@@ -200,7 +207,13 @@ public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> 
 			assertEquals(tables[i], operation.get(JSONBuilder.JSON_FIELD_TABLE));
 			assertEquals(ids[i], operation.get(JSONBuilder.JSON_FIELD_ROW));
 			assertEquals(columns[i], operation.get(JSONBuilder.JSON_FIELD_COLUMN));
-			assertEquals(revisions.getRevision(tables[i], ids[i], columns[i]), operation.get(JSONBuilder.JSON_FIELD_REVISION));
+			JSONObject revisions = operation.getJSONObject(JSONBuilder.JSON_FIELD_REVISIONS);
+			Iterator<String> iterator = revisions.keys();
+			while (iterator.hasNext()) {
+				String column = iterator.next();
+				assertEquals(revisionTableSnapshot.getRevision(tables[i], ids[i], column), revisions.getInt(column));
+			}
+//			assertEquals(revisionTableSnapshot.getRevision(tables[i], ids[i], columns[i]), operation.get(JSONBuilder.JSON_FIELD_REVISIONS));
 			ContentValues data = translator.translate(operation.getJSONObject(JSONBuilder.JSON_FIELD_DATA));
 			// Convert to Long to keep from failing the test since ids are small enough that they will be coerced to Integers
 			Object dataValue = data.get(columns[i]);
@@ -219,11 +232,11 @@ public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> 
 		writeCreations();
 		writeUpdates();
 		writeDeletions();
-		JournalSnapshot journal = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
-		RevisionTableSnapshot revisions = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
+		JournalSnapshot journalSnapshot = JournalSnapshot.createFromCursor(getMockContentResolver().query(JournalContract.CONTENT_URI, null, null, null, null));
+		RevisionTableSnapshot revisionTableSnapshot = RevisionTableSnapshot.createFromCursor(getMockContentResolver().query(RevisionTableContract.CONTENT_URI, null, null, null, null));
 
 		ContentProviderClient provider = getMockContentResolver().acquireContentProviderClient(CheckbookContentProvider.AUTHORITY);
-		JSONObject json = marshaller.marshal(journal, revisions, provider, 0);
+		JSONObject json = marshaller.marshal(journalSnapshot, revisionTableSnapshot, provider, 0);
 
 		assertEquals(0, json.getInt(Marshaller.JSON_FIELD_ANCHOR));
 
@@ -235,7 +248,14 @@ public class MarshallerTest extends ProviderTestCase2<CheckbookContentProvider> 
 			JSONObject operation = array.getJSONObject(i);
 			assertEquals(tables[i], operation.get(JSONBuilder.JSON_FIELD_TABLE));
 			assertEquals(ids[i], operation.get(JSONBuilder.JSON_FIELD_ROW));
-			assertEquals(revisions.getMaxRevision(tables[i], ids[i]), operation.get(JSONBuilder.JSON_FIELD_REVISION));
+			JSONObject revisions = operation.getJSONObject(JSONBuilder.JSON_FIELD_REVISIONS);
+			Iterator<String> iterator = revisions.keys();
+			while (iterator.hasNext()) {
+				String column = iterator.next();
+				assertEquals(revisionTableSnapshot.getRevision(tables[i], ids[i], column), revisions.getInt(column));
+			}
+
+//			assertEquals(revisionSnapshot.getMaxRevision(tables[i], ids[i]), operation.get(JSONBuilder.JSON_FIELD_REVISIONS));
 		}
 		// Check that stats were correctly written
 		// We expect 4 skipped entries

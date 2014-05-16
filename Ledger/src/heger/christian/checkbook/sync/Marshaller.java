@@ -3,6 +3,7 @@ package heger.christian.checkbook.sync;
 import heger.christian.checkbook.providers.CheckbookContentProvider;
 import heger.christian.checkbook.providers.Journaler;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -81,7 +82,7 @@ public class Marshaller {
 		return false;
 	}
 
-	public JSONObject marshal(JournalSnapshot journalSnapshot, RevisionTableSnapshot revisions, ContentProviderClient provider, long anchor) {
+	public JSONObject marshal(JournalSnapshot journalSnapshot, RevisionTableSnapshot revisionTableSnapshot, ContentProviderClient provider, long anchor) {
 		final byte CREATIONS = 0;
 		final byte UPDATES = 1;
 		final byte DELETIONS = 2;
@@ -118,6 +119,7 @@ public class Marshaller {
 								null);
 					} catch (RemoteException x) {
 						error(table, null, null, x);
+						// TODO Shouldn't this be stats.numSkippedEntries += ids.size()
 						stats.numSkippedEntries++;
 						continue;
 					}
@@ -140,25 +142,40 @@ public class Marshaller {
 						continue;
 					}
 
+					// FIXME Change from scalar to Map column -> revision
 					int iterations = i == UPDATES ? columns.length : 1;
 					for (int j = 0; j < iterations; j++) {
 					// Iterate over all the columns for the current row.
 //					for (String column: columns) {
 						// Create the appropriate builder
 						JSONBuilder builder = null;
-						int revision = 0;
+//						int revision = 0;
+						Map<String, Integer> revisions = new HashMap<String, Integer>();
 						switch (i) {
 							case CREATIONS:
 								builder = JSONBuilder.newCreateBuilder();
-								revision = 0;
+								// FIXME Fill revision map with 0 for all columns
+								for (String column: columns) {
+									revisions.put(column, 0);
+								}
+//								revision = 0;
 								break;
 							case UPDATES:
 								builder = JSONBuilder.newUpdateBuilder();
-								revision = revisions.getRevision(table, id, columns[j]);
+								// FIXME Turn into single entry map
+								// Because there will be further iteration cycles for each update operation, we do not
+								// need to put all column revisions into the map at this point
+								// I.e. no loop for column:columns
+								revisions.put(columns[j], revisionTableSnapshot.getRevision(table, id, columns[j]));
+//								revision = revisionTableSnapshot.getRevision(table, id, columns[j]);
 								break;
 							case DELETIONS:
 								builder = JSONBuilder.newDeleteBuilder();
-								revision = revisions.getMaxRevision(table, id);
+								// FIXME Fill map with revisions for all columns
+								for (String column: columns) {
+									revisions.put(column, revisionTableSnapshot.getRevision(table, id, column));
+								}
+//								revision = revisionTableSnapshot.getMaxRevision(table, id);
 								break;
 						}
 						try {
@@ -166,7 +183,7 @@ public class Marshaller {
 									.withRow(id)
 									.withColumn(columns[j])
 									.withData(translator.translate(data, i == UPDATES ? new String[] { columns[j] } : null))
-									.withRevision(revision)
+									.withRevisions(revisions)
 									.build());
 						} catch (JSONException x) {
 							error(table, id, i == UPDATES ? columns[j] : "n/a", x);
