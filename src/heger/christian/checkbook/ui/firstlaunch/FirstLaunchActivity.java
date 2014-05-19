@@ -23,7 +23,6 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -188,8 +187,7 @@ public class FirstLaunchActivity extends Activity {
 								Bundle bundle = future.getResult();
 								Account account = new Account(bundle.getString(AccountManager.KEY_ACCOUNT_NAME), bundle.getString(AccountManager.KEY_ACCOUNT_TYPE));
 								ContentResolver.setSyncAutomatically(account, CheckbookContentProvider.AUTHORITY, true);
-								// TODO initialize key generator
-								Log.d("CA", bundle.getString(AccountManager.KEY_AUTHTOKEN) + "");
+								ContentResolver.requestSync(account, CheckbookContentProvider.AUTHORITY, new Bundle());
 							// Don't care about any exceptions - sync will just not automatically be enabled
 							} catch (OperationCanceledException x) {
 							} catch (AuthenticatorException x) {

@@ -7,6 +7,7 @@ import heger.christian.checkbook.network.TruststoreException;
 import heger.christian.checkbook.providers.CheckbookContentProvider;
 import heger.christian.checkbook.providers.Journaler;
 import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
+import heger.christian.checkbook.providers.MetaContentProvider.KeyGenerationContract;
 import heger.christian.checkbook.providers.MetaContentProvider.RevisionTableContract;
 import heger.christian.checkbook.providers.MetaContentProvider.SequenceAnchorContract;
 import heger.christian.checkbook.providers.SharedTransaction;
@@ -31,6 +32,7 @@ import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.OperationApplicationException;
 import android.content.SyncResult;
@@ -133,6 +135,52 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 		} catch (IOException x) {
 			syncResult.stats.numIoExceptions++;
 			return;
+		}
+
+		/*
+		 * Get a new key series if so desired
+		 */
+		boolean wantsKeys = false;
+		if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.JELLY_BEAN_MR1) {
+			try {
+				Bundle bundle = provider.call(CheckbookContentProvider.METHOD_WANTS_KEYS, null, null);
+				wantsKeys = bundle.getBoolean(CheckbookContentProvider.METHOD_WANTS_KEYS, false);
+			} catch (RemoteException x) {
+				// TODO Auto-generated catch block
+				x.printStackTrace();
+			}
+		} else {
+			Bundle bundle = resolver.call(CheckbookContentProvider.CONTENT_URI, CheckbookContentProvider.METHOD_WANTS_KEYS, null, null);
+			wantsKeys = bundle.getBoolean(CheckbookContentProvider.METHOD_WANTS_KEYS, false);
+		}
+		if (wantsKeys) {
+			KeySeriesRequester requester = new KeySeriesRequester();
+			try {
+				requester.setSSLSocketFactory(new CheckbookSSLContextFactory(getContext()).createSSLContext().getSocketFactory());
+				Bundle bundle = requester.request(token);
+				// If response has a new key series, write it to storage
+				if (bundle.containsKey(KeySeriesRequester.KEY_NEXT_KEY) && bundle.containsKey(KeySeriesRequester.KEY_UPPER_BOUND)) {
+					ContentValues values = new ContentValues();
+					values.put(KeyGenerationContract.COL_NAME_NEXT_KEY, bundle.getLong(KeySeriesRequester.KEY_NEXT_KEY));
+					values.put(KeyGenerationContract.COL_NAME_UPPER_BOUND, bundle.getLong(KeySeriesRequester.KEY_UPPER_BOUND));
+					Context context = getContext();
+					if (context != null) {
+						context.getContentResolver().insert(KeyGenerationContract.CONTENT_URI, values);
+					}
+				}
+			} catch (IOException x) {
+				syncResult.stats.numIoExceptions++;
+				return;
+			} catch (TruststoreException x) {
+				Log.e(TAG, x.toString());
+				// TODO Is numIoExceptions really the best value here?
+				// A certificate error need not necessarily be the app's fault if
+				// server certificates have changed, so it could be seen as a
+				// network error (which IOException in this context usually implies).
+				// On the other hand, this is not really a soft error, the only way
+				// to resolve it is usually updating the app.
+				syncResult.stats.numIoExceptions++;
+			}
 		}
 
 		/*

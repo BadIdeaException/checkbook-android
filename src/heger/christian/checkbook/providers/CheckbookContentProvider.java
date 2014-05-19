@@ -78,8 +78,9 @@ public class CheckbookContentProvider extends ContentProvider {
 	public static final String MIME_TYPE = "vnd.android.cursor";
 	public static final String MIME_SUBTYPE = "vnd.heger.christian.Checkbook.provider";
 
-	public static final String METHOD_ENABLE_JOURNALING = "enable_journaling";
-	public static final String METHOD_DISABLE_JOURNALING = "disable_journaling";
+	public static final String METHOD_ENABLE_JOURNALING = "enableJournaling";
+	public static final String METHOD_DISABLE_JOURNALING = "disableJournaling";
+	public static final String METHOD_WANTS_KEYS = "wantsKeys";
 
 	public static Uri getUriForTable(String table) {
 		if (table.equals(CategoryContract.TABLE_NAME)) {
@@ -543,16 +544,23 @@ public class CheckbookContentProvider extends ContentProvider {
 	 * <ul>
 	 * <li> <code>METHOD_ENABLE_JOURNALING</code> - results in a call to <code>setJournaling(true)</code>
 	 * <li> <code>METHOD_DISABLE_JOURNALING</code> - results in a call to <code>setJournaling(false)</code>
+	 * <li> <code>METHOD_WANTS_KEYS</code> - results in a call to <code>wantsKeys()</code>. The result of the
+	 * call is returned through the bundle under the key <code>METHOD_WANTS_KEYS</code>
 	 * </ul>
 	 * @see ContentProvider#call(String, String, Bundle)
 	 */
 	@Override
 	public Bundle call(String method, String arg, Bundle extras) {
+		Bundle bundle = null;
 		if (method.equals(METHOD_ENABLE_JOURNALING))
 			setJournaling(true);
 		else if (method.equals(METHOD_DISABLE_JOURNALING))
 			setJournaling(false);
-		return null;
+		else if (method.equals(METHOD_WANTS_KEYS)) {
+			bundle = new Bundle();
+			bundle.putBoolean(METHOD_WANTS_KEYS, wantsKeys());
+		}
+		return bundle;
 	}
 
 	/**
@@ -560,6 +568,10 @@ public class CheckbookContentProvider extends ContentProvider {
 	 */
 	public void setJournaling(boolean journaling) {
 		this.journaling = journaling;
+	}
+
+	public boolean wantsKeys() {
+		return keyGenerator.wantsKeys();
 	}
 
 	/**

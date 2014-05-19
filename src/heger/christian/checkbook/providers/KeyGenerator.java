@@ -112,4 +112,18 @@ public class KeyGenerator {
 
 		return key++;
 	}
+
+	/**
+	 * Indicates if this key generator would like to have a fresh key series. This does not mean
+	 * that the generator is exhausted, although the reverse should always be true: A key generator
+	 * that has exhausted its assigned series should always return <code>true</code> for this method.
+	 * <p>
+	 * This implementation returns <code>true</code> if the current series has less than or equal to
+	 * 16 keys remaining.
+	 * @return <code>true</code> if a new series should be gotten from the server, <code>false</code>
+	 * otherwise.
+	 */
+	public boolean wantsKeys() {
+		return upperBound - nextKey <= 16;
+	}
 }

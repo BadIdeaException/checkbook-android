@@ -1,7 +1,6 @@
 package heger.christian.checkbook.sync;
 
 import heger.christian.checkbook.network.Endpoints;
-import heger.christian.checkbook.network.SecureConnection;
 import heger.christian.checkbook.network.UnauthorizedAccessException;
 
 import java.io.IOException;
@@ -21,11 +20,9 @@ import com.goebl.david.WebbException;
 
 /**
  * This class encapsulates the algorithm to request a new key series from the server. This is done
- * in the {@link #request(SecureConnection)} method.
+ * in the {@link #request(String)} method.
  * <p>
- * Note that this class's responsibility is limited to <i>only</i> key series requests. It does not
- * set up the used connection with respect to certificate handling or authorization (it does, however,
- * disable caching on the connection). Likewise, if a new key series was successfully obtained, it
+ * Note that if a new key series is successfully obtained, it
  * does not write it to persistent storage or perform any other operations on it.
  */
 public class KeySeriesRequester {
@@ -50,7 +47,7 @@ public class KeySeriesRequester {
 	 * <li>the next key to use under <code>KEY_NEXT_KEY</code> and new upper bound under <code>KEY_UPPER_BOUND</code>, or
 	 * <li>an error code under <code>KEY_ERROR_CODE</code> and error message under <code>KEY_ERROR_MESSAGE</code>
 	 * @throws IOException If an IOException occurred during communication with the server
-	 * @throws UnauthorizedAccessException - If the request was rejected by the server due to an invalid token
+	 * @throws UnauthorizedAccessException If the request was rejected by the server due to an invalid token
 	 */
 	public Bundle request(String token) throws IOException {
 		Webb webb = Webb.create();
