@@ -4,6 +4,7 @@ import heger.christian.checkbook.accounts.Authenticator;
 import heger.christian.checkbook.network.CheckbookSSLContextFactory;
 import heger.christian.checkbook.network.Endpoints;
 import heger.christian.checkbook.network.TruststoreException;
+import heger.christian.checkbook.network.UnauthorizedAccessException;
 import heger.christian.checkbook.providers.CheckbookContentProvider;
 import heger.christian.checkbook.providers.Journaler;
 import heger.christian.checkbook.providers.MetaContentProvider.JournalContract;
@@ -180,7 +181,12 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 				// On the other hand, this is not really a soft error, the only way
 				// to resolve it is usually updating the app.
 				syncResult.stats.numIoExceptions++;
+			} catch (UnauthorizedAccessException x) {
+				syncResult.fullSyncRequested = true;
+				AccountManager.get(getContext()).invalidateAuthToken(account.type, token);
+				return;
 			}
+
 		}
 
 		/*
