@@ -62,7 +62,7 @@ public class KeySeriesRequester {
 				.ensureSuccess()
 				.asJsonObject();
 		} catch (WebbException x) {
-			if (x.getResponse() != null && x.getResponse().getStatusCode() == HttpURLConnection.HTTP_FORBIDDEN) {
+			if (x.getResponse() != null && x.getResponse().getStatusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
 				throw new UnauthorizedAccessException();
 			} else
 				throw new IOException(x);
