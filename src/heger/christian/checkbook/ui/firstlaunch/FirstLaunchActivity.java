@@ -151,13 +151,13 @@ public class FirstLaunchActivity extends Activity {
 			int position = getArguments().getInt(ARG_SECTION_NUMBER);
 			switch (position) {
 				case 0:
-					imageRes = R.drawable.spreadsheet;
+					imageRes = R.drawable.money;
 					captionRes = R.string.caption1;
 					detailsRes = R.string.details1;
 					loginRes = R.string.skip_to_login;
 					break;
 				case 1:
-					imageRes = R.drawable.money;
+					imageRes = R.drawable.analysis;
 					captionRes = R.string.caption2;
 					detailsRes = R.string.details2;
 					loginRes = R.string.skip_to_login;
