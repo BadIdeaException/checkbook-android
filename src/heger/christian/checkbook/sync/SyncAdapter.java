@@ -147,8 +147,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 				Bundle bundle = provider.call(CheckbookContentProvider.METHOD_WANTS_KEYS, null, null);
 				wantsKeys = bundle.getBoolean(CheckbookContentProvider.METHOD_WANTS_KEYS, false);
 			} catch (RemoteException x) {
-				// TODO Auto-generated catch block
-				x.printStackTrace();
+				Bundle bundle = resolver.call(CheckbookContentProvider.CONTENT_URI, CheckbookContentProvider.METHOD_WANTS_KEYS, null, null);
+				wantsKeys = bundle.getBoolean(CheckbookContentProvider.METHOD_WANTS_KEYS, false);
 			}
 		} else {
 			Bundle bundle = resolver.call(CheckbookContentProvider.CONTENT_URI, CheckbookContentProvider.METHOD_WANTS_KEYS, null, null);
