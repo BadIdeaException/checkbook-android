@@ -124,6 +124,7 @@ public class KeyGenerator {
 	 * otherwise.
 	 */
 	public boolean wantsKeys() {
+		if (!initialized) initialize();
 		return upperBound - nextKey <= 16;
 	}
 }
